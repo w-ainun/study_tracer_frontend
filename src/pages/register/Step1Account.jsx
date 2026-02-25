@@ -54,7 +54,7 @@ export default function Step1Account({ onNext, formData, updateFormData }) {
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-third" size={16} />
               <input
                 type="password"
-                placeholder="••••••••"
+                placeholder="Masukkan Password Anda"
                 value={formData.password}
                 onChange={(e) => updateFormData({ password: e.target.value })}
                 className="w-full pl-10 pr-4 py-3 bg-white border border-fourth rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none"
@@ -69,7 +69,7 @@ export default function Step1Account({ onNext, formData, updateFormData }) {
               <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 text-third" size={16} />
               <input
                 type="password"
-                placeholder="••••••••"
+                placeholder="Masukkan Konfirmasi Password Anda"
                 value={formData.password_confirmation}
                 onChange={(e) => updateFormData({ password_confirmation: e.target.value })}
                 className="w-full pl-10 pr-4 py-3 bg-white border border-fourth rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none"
