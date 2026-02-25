@@ -28,8 +28,6 @@ const buildFotoUrl = (foto) => {
   return `${STORAGE_BASE_URL}/${path}`;
 };
 
-// --- Components ---
-
 const ManagementStatCard = ({ title, value, trend, icon: Icon, iconBg, iconColor, loading }) => (
   <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 flex items-start justify-between group">
     <div>
@@ -333,7 +331,7 @@ export default function UserManagement() {
                 <button
                   key={tab.label}
                   onClick={() => setActiveTab(tab.label)}
-                  className={`px-6 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap
+                  className={`cursor-pointer px-6 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap
                     ${activeTab === tab.label
                       ? 'bg-white text-primary shadow-sm ring-1 ring-slate-200'
                       : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
@@ -361,7 +359,7 @@ export default function UserManagement() {
               <button
                 onClick={handleExport}
                 disabled={exportLoading}
-                className="flex items-center gap-2 px-5 py-2.5 bg-[#3C5759] text-white font-bold rounded-xl hover:opacity-90 active:scale-95 transition-all text-xs shadow-md shadow-[#3C5759]/20 whitespace-nowrap disabled:opacity-50"
+                className="cursor-pointer flex items-center gap-2 px-5 py-2.5 bg-primary text-white font-bold rounded-xl hover:opacity-90 active:scale-95 transition-all text-xs shadow-md shadow-primary/20 whitespace-nowrap disabled:opacity-50"
                 title="Eksport Data CSV"
               >
                 {exportLoading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
@@ -372,7 +370,7 @@ export default function UserManagement() {
               <div className="relative">
                 <button
                   onClick={() => setIsFilterOpen(!isFilterOpen)}
-                  className={`p-2.5 rounded-xl transition-all border
+                  className={`cursor-pointer p-2.5 rounded-xl transition-all border
                     ${isFilterOpen || selectedJurusan !== 'Semua'
                       ? 'bg-primary/10 text-primary border-primary/20'
                       : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:text-slate-700'
@@ -393,7 +391,7 @@ export default function UserManagement() {
                       <button
                         onClick={() => { setSelectedJurusan('Semua'); setIsFilterOpen(false); }}
                         className={`w-full text-left px-3 py-2 text-xs font-bold rounded-lg transition-colors flex justify-between items-center
-                          ${selectedJurusan === 'Semua' ? 'bg-[#3C5759] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'}`}
+                          ${selectedJurusan === 'Semua' ? 'bg-primary text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'}`}
                       >
                         Semua Jurusan
                         {selectedJurusan === 'Semua' && <Check size={14} />}
@@ -403,7 +401,7 @@ export default function UserManagement() {
                           key={j.id}
                           onClick={() => { setSelectedJurusan(j.id); setIsFilterOpen(false); }}
                           className={`w-full text-left px-3 py-2 text-xs font-bold rounded-lg transition-colors flex justify-between items-center
-                            ${selectedJurusan === j.id ? 'bg-[#3C5759] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'}`}
+                            ${selectedJurusan === j.id ? 'bg-primary text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50'}`}
                         >
                           {j.nama}
                           {selectedJurusan === j.id && <Check size={14} />}
@@ -448,9 +446,6 @@ export default function UserManagement() {
                       <tr key={item.id} className="hover:bg-slate-50/80 transition-colors group">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-slate-700 text-white flex items-center justify-center font-bold text-xs shadow-md shadow-primary/20">
-                              {getInitials(item.nama)}
-                            </div>
                             <div>
                               <p className="font-bold text-slate-700 text-sm group-hover:text-primary transition-colors">{item.nama}</p>
                               <p className="text-[11px] text-slate-400">NIS: {item.nis || '-'} &bull; NISN: {item.nisn || '-'}</p>
@@ -489,7 +484,7 @@ export default function UserManagement() {
                             <button
                               title="Lihat Detail"
                               onClick={() => handleViewDetail(item.id)}
-                              className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all"
+                              className="cursor-pointer p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all"
                             >
                               <Eye size={18} />
                             </button>
@@ -499,7 +494,7 @@ export default function UserManagement() {
                                   title="Tolak"
                                   disabled={actionLoading === item.id}
                                   onClick={() => handleReject(item.id)}
-                                  className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all disabled:opacity-50"
+                                  className="cursor-pointer p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all disabled:opacity-50"
                                 >
                                   <X size={18} />
                                 </button>
@@ -507,7 +502,7 @@ export default function UserManagement() {
                                   title="Setujui"
                                   disabled={actionLoading === item.id}
                                   onClick={() => handleApprove(item.id)}
-                                  className="p-1.5 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all disabled:opacity-50"
+                                  className="cursor-pointer p-1.5 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all disabled:opacity-50"
                                 >
                                   <Check size={18} />
                                 </button>
@@ -518,7 +513,7 @@ export default function UserManagement() {
                                 title="Hapus User"
                                 disabled={actionLoading === item.user?.id}
                                 onClick={() => handleDelete(item.user?.id, item.nama)}
-                                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all disabled:opacity-50"
+                                className="cursor-pointer p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all disabled:opacity-50"
                               >
                                 <Trash2 size={18} />
                               </button>
@@ -554,7 +549,7 @@ export default function UserManagement() {
                       onClick={() => setCurrentPage(page)}
                       className={`min-w-[32px] h-8 rounded-lg text-xs font-bold transition-all
                         ${currentPage === page
-                          ? 'bg-[#3C5759] text-white shadow-sm'
+                          ? 'bg-primary text-white shadow-sm'
                           : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
                         }`}
                     >
@@ -574,7 +569,6 @@ export default function UserManagement() {
           </div>
         </div>
 
-        {/* ======================= DETAIL MODAL ======================= */}
         {showDetail && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setShowDetail(false)}>
             <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -698,7 +692,6 @@ export default function UserManagement() {
             </div>
           </div>
         )}
-
       </div>
     </div>
   );

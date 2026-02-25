@@ -59,7 +59,7 @@ export default function Header({ toggleSidebar }) {
   return (
     <header
       className="
-          fixed top-0 right-0 z-40
+          fixed top-0 right-0 z-20
           h-20 bg-white/80 backdrop-blur-md border-b border-fourth
           flex items-center justify-between
           px-6 md:px-8

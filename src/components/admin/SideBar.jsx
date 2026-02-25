@@ -68,14 +68,14 @@ export default function SideBar({ active, setActive }) {
     <>
       {active && (
         <div
-          className="fixed inset-0 bg-black/40 z-[60] lg:hidden backdrop-blur-sm transition-opacity"
+          className="fixed inset-0 bg-black/40 z-21 lg:hidden backdrop-blur-sm transition-opacity"
           onClick={() => setActive(false)}
         />
       )}
 
       {/* Sidebar Container */}
       <div className={`
-        fixed lg:relative z-10
+        fixed lg:relative z-30
         w-72 md:w-65
         h-dvh
         bg-white border-r border-fourth
