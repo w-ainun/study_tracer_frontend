@@ -16,7 +16,8 @@ const fallbackPlatforms = [
   { id: 4, label: 'Twitter', key: 'twitter' },
 ];
 
-export default function SosmedInput({ onChange }) {
+// 1. Tambahkan prop 'value' disini
+export default function SosmedInput({ value, onChange }) {
   const [platforms, setPlatforms] = useState([]);
   const [socials, setSocials] = useState([]);
   const [openDropdownIndex, setOpenDropdownIndex] = useState(null);
@@ -32,15 +33,38 @@ export default function SosmedInput({ onChange }) {
           key: (p.nama_sosmed || p.nama || p.platform || '').toLowerCase().replace(/\s+/g, ''),
         }));
         setPlatforms(mapped);
-        if (mapped.length > 0) {
-          setSocials([{ platformId: mapped[0].id, url: '' }]);
+
+        // 2. LOGIKA PERBAIKAN DISINI:
+        // Cek apakah ada data 'value' dari parent (data tersimpan)
+        if (value && value.length > 0) {
+          // Mapping balik dari format database (id_sosmed) ke format state lokal (platformId)
+          const savedSocials = value.map(item => ({
+            platformId: item.id_sosmed || item.platformId, // Handle kedua kemungkinan nama key
+            url: item.url
+          }));
+          setSocials(savedSocials);
+        } else {
+          // Jika tidak ada data tersimpan, baru set default kosong
+          if (mapped.length > 0) {
+            setSocials([{ platformId: mapped[0].id, url: '' }]);
+          }
         }
       })
       .catch(() => {
         setPlatforms(fallbackPlatforms);
-        setSocials([{ platformId: fallbackPlatforms[0].id, url: '' }]);
+        // Cek value juga saat error/fallback
+        if (value && value.length > 0) {
+            const savedSocials = value.map(item => ({
+                platformId: item.id_sosmed || item.platformId,
+                url: item.url
+            }));
+            setSocials(savedSocials);
+        } else {
+            setSocials([{ platformId: fallbackPlatforms[0].id, url: '' }]);
+        }
       });
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Hanya jalan sekali saat mount
 
   const getIcon = (p) => {
     return iconMap[p.key] || <span className="w-[18px] h-[18px] rounded-full bg-gray-300 inline-block" />;
@@ -49,7 +73,7 @@ export default function SosmedInput({ onChange }) {
   const fireOnChange = (updatedSocials) => {
     if (onChange) {
       const result = updatedSocials
-        .filter((s) => s.url.trim())
+        // .filter((s) => s.url.trim()) // Opsional: Filter url kosong jika perlu
         .map((s) => ({ id_sosmed: s.platformId, url: s.url }));
       onChange(result);
     }
@@ -59,9 +83,13 @@ export default function SosmedInput({ onChange }) {
   const addSocial = () => {
     const usedIds = socials.map(s => s.platformId);
     const nextAvailable = platforms.find(p => !usedIds.includes(p.id));
-    if (nextAvailable && socials.length < platforms.length) {
-      const updated = [...socials, { platformId: nextAvailable.id, url: '' }];
+    // Jika semua platform terpakai, gunakan yang pertama lagi atau kosongkan logic ini
+    const nextId = nextAvailable ? nextAvailable.id : (platforms[0]?.id || 1);
+    
+    if (socials.length < platforms.length) {
+      const updated = [...socials, { platformId: nextId, url: '' }];
       setSocials(updated);
+      // fireOnChange(updated); // Opsional: update parent saat tambah baris kosong
     }
   };
 
@@ -86,7 +114,7 @@ export default function SosmedInput({ onChange }) {
     <div className="space-y-3 col-span-full">
       {/* Header Label + Button Plus */}
       <div className="flex items-center justify-between">
-        <label className="text-[11px] font-bold text-secondary  tracking-wider">
+        <label className="text-[11px] font-bold text-secondary tracking-wider">
           <span className='uppercase'>Sosial Media </span><span className="text-xs text-third italic">(opsional)</span>
         </label>
 
@@ -102,14 +130,15 @@ export default function SosmedInput({ onChange }) {
       </div>
 
       {/* List Inputan */}
-      <div className="space-y-3 ">
+      <div className="space-y-3">
         {socials.map((item, index) => {
           const selectedPlatform = platforms.find(p => p.id === item.platformId);
+          // Logic agar dropdown tidak menampilkan sosmed yang sudah dipilih di baris lain
           const usedIds = socials.map(s => s.platformId).filter(id => id !== item.platformId);
           const availablePlatforms = platforms.filter(p => !usedIds.includes(p.id));
 
           return (
-            <div key={index} className="realtive w-full flex items-center gap-2 group animate-in fade-in slide-in-from-top-1 duration-300">
+            <div key={index} className="relative w-full flex items-center gap-2 group animate-in fade-in slide-in-from-top-1 duration-300">
               <div className={`w-full flex items-center bg-white border-2 rounded-xl transition-all duration-300
                 ${openDropdownIndex === index ? 'border-primary ring-2 ring-primary/10' : 'border-fourth hover:border-primary/50'}`}>
 
@@ -118,7 +147,7 @@ export default function SosmedInput({ onChange }) {
                   <button
                     type="button"
                     onClick={() => setOpenDropdownIndex(openDropdownIndex === index ? null : index)}
-                    className="flex items-center gap-2 px-3 py-3 cursor-pointer outline-none"
+                    className="flex items-center gap-2 px-3 py-3 cursor-pointer outline-none min-w-[50px] justify-center"
                   >
                     {selectedPlatform && getIcon(selectedPlatform)}
                     <ChevronDown size={14} className={`text-third transition-transform duration-300 ${openDropdownIndex === index ? 'rotate-180' : ''}`} />
@@ -152,8 +181,8 @@ export default function SosmedInput({ onChange }) {
                   type="text"
                   value={item.url}
                   onChange={(e) => updateSocial(index, 'url', e.target.value)}
-                  placeholder={`Url ${selectedPlatform?.label}`}
-                  className="w-fullc p-3 text-sm outline-none bg-transparent text-secondary placeholder:text-third/50"
+                  placeholder={`Url ${selectedPlatform?.label || 'Sosmed'}`}
+                  className="w-full p-3 text-sm outline-none bg-transparent text-secondary placeholder:text-third/50"
                 />
               </div>
 
@@ -162,7 +191,7 @@ export default function SosmedInput({ onChange }) {
                 <button
                   type="button"
                   onClick={() => removeSocial(index)}
-                  className=" bg-white border-l border-fourth p-3 text-red-400 hover:text-red-600 hover:bg-red-50 transition-all cursor-pointer"
+                  className="bg-white border-l border-fourth p-3 text-red-400 hover:text-red-600 hover:bg-red-50 transition-all cursor-pointer rounded-r-xl"
                 >
                   <Trash2 size={18} />
                 </button>

@@ -1,276 +1,270 @@
 import React, { useState, useRef, useEffect } from "react";
-import {
-  User,
-  ArrowLeft,
-  ArrowRight,
-  Upload,
-  Image as ImageIcon,
-  MapPin
-} from "lucide-react";
-import SmoothDropdown from "../../components/admin/SmoothDropdown";
+import { User, ArrowLeft, ArrowRight, Upload, Image as ImageIcon, MapPin, X, ChevronDown, Check } from "lucide-react";
 import YearsInput from "../../components/YearsInput";
 import SosmedInput from "../../components/SosmedInput";
-import SkillInput from "../../components/SkillsInput";
 import DateOfBirthInput from "../../components/DateOfBirthInput";
 import { masterDataApi } from "../../api/masterData";
 
-export default function Step2Profile({ onNext, onBack, formData, updateFormData }) {
-  const [preview, setPreview] = useState(null);
-  const fileRef = useRef(null);
-  const [jurusanOptions, setJurusanOptions] = useState([]);
-  const [jurusanMap, setJurusanMap] = useState({});
+// --- MULTI-SELECT DROPDOWN (Fixed: Send ID, Show Name) ---
+const MultiSelectDropdown = ({ label, options = [], selected = [], onChange, placeholder }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef(null);
 
-  // Fetch jurusan from API
   useEffect(() => {
-    masterDataApi.getJurusan()
-      .then((res) => {
-        const data = res.data.data || [];
-        const options = data.map((j) => j.nama_jurusan || j.nama);
-        const map = {};
-        data.forEach((j) => { map[j.nama_jurusan || j.nama] = j.id; });
-        setJurusanOptions(options);
-        setJurusanMap(map);
-      })
-      .catch(() => {
-        // Fallback
-        setJurusanOptions(["Rekayasa Perangkat Lunak", "Teknik Komputer Jaringan", "Multi Media"]);
-      });
+    const clickOut = (e) => { if (ref.current && !ref.current.contains(e.target)) setIsOpen(false); };
+    document.addEventListener("mousedown", clickOut);
+    return () => document.removeEventListener("mousedown", clickOut);
   }, []);
 
-  const handleImage = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (preview) URL.revokeObjectURL(preview);
-    const url = URL.createObjectURL(file);
-    setPreview(url);
-    updateFormData({ foto: file });
+  // Helper: Toggle ID dalam array
+  const toggle = (id) => {
+    onChange(selected.includes(id) ? selected.filter(i => i !== id) : [...selected, id]);
   };
 
-  const removeImage = () => {
-    if (preview) URL.revokeObjectURL(preview);
+  // Helper: Cari nama berdasarkan ID untuk ditampilkan di tag
+  const getLabel = (id) => {
+    const found = options.find(opt => opt.id === id);
+    return found ? found.nama : id; // Fallback ke ID jika nama tidak ketemu (jarang terjadi)
+  };
+
+  // Filter opsi berdasarkan pencarian nama
+  const filtered = options.filter(opt => opt.nama.toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <div className="space-y-1 relative" ref={ref}>
+      <label className="text-[11px] font-bold text-secondary uppercase">{label}</label>
+      
+      {/* Trigger Area */}
+      <div 
+        className="w-full px-2 py-1.5 min-h-[42px] bg-white border border-fourth rounded-xl focus-within:ring-2 focus-within:ring-primary flex flex-wrap gap-1 items-center cursor-text" 
+        onClick={() => setIsOpen(true)}
+      >
+        {!selected.length && !search && (
+          <span className="text-gray-400 text-xs absolute left-2 pointer-events-none">{placeholder}</span>
+        )}
+        
+        {/* Render Selected Tags (Lookup Name by ID) */}
+        {selected.map((id, idx) => (
+          <span key={idx} className="bg-fourth text-secondary px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 border border-slate-200">
+            {getLabel(id)} 
+            <X size={10} className="cursor-pointer hover:text-red-500" onClick={(e) => { e.stopPropagation(); toggle(id); }} />
+          </span>
+        ))}
+
+        <input 
+          type="text" 
+          className="flex-1 min-w-[60px] outline-none bg-transparent text-sm h-full" 
+          value={search} 
+          onChange={(e) => setSearch(e.target.value)} 
+          onFocus={() => setIsOpen(true)} 
+        />
+        <ChevronDown size={14} className="text-gray-400 ml-auto" />
+      </div>
+
+      {/* Dropdown Menu */}
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-fourth rounded-xl shadow-lg max-h-48 overflow-y-auto">
+          {filtered.length ? filtered.map((opt) => (
+            <div 
+              key={opt.id} 
+              className={`px-3 py-2 text-xs cursor-pointer hover:bg-blue-50 flex justify-between ${selected.includes(opt.id) ? 'text-primary font-bold bg-blue-50/50' : 'text-slate-600'}`} 
+              onClick={() => toggle(opt.id)} // Simpan ID saat diklik
+            >
+              <span>{opt.nama}</span> 
+              {selected.includes(opt.id) && <Check size={12} />}
+            </div>
+          )) : (
+            <div className="px-3 py-2 text-xs text-gray-400 text-center">Skill tidak ditemukan</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// --- SINGLE SELECT DROPDOWN (Existing) ---
+const SelectInput = ({ label, value, options, onSelect, placeholder }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const clickOut = (e) => { if (ref.current && !ref.current.contains(e.target)) setIsOpen(false); };
+    document.addEventListener("mousedown", clickOut);
+    return () => document.removeEventListener("mousedown", clickOut);
+  }, []);
+
+  return (
+    <div className="space-y-1 relative" ref={ref}>
+      <label className="text-[11px] font-bold text-secondary uppercase">{label} <span className="text-red-500">*</span></label>
+      <div onClick={() => setIsOpen(!isOpen)} className="w-full px-3 py-2.5 bg-white border border-fourth rounded-xl text-sm flex justify-between items-center cursor-pointer hover:border-primary">
+        <span className={value ? "text-slate-800" : "text-gray-400"}>{value || placeholder}</span>
+        <div className="flex gap-1 items-center">
+          {value && <X size={14} className="text-gray-400 hover:text-red-500" onClick={(e) => { e.stopPropagation(); onSelect(""); }} />}
+          <ChevronDown size={16} className="text-gray-400" />
+        </div>
+      </div>
+      {isOpen && (
+        <div className="absolute z-20 w-full mt-1 bg-white border border-fourth rounded-xl shadow-xl max-h-48 overflow-y-auto">
+          {options.map((opt, idx) => (
+            <div key={idx} onClick={() => { onSelect(opt); setIsOpen(false); }} className={`px-3 py-2 text-xs cursor-pointer hover:bg-fourth ${value === opt ? "font-bold text-primary" : "text-slate-600"}`}>
+              {opt}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default function Step2Profile({ onNext, onBack, formData, updateFormData }) {
+  // Preview Foto (Persist)
+  const [preview, setPreview] = useState(() => {
+    if (formData.foto && typeof formData.foto === 'object') return URL.createObjectURL(formData.foto);
+    if (typeof formData.foto === 'string') return formData.foto;
+    return null;
+  });
+  
+  // States Data Master
+  const [jurusanOpts, setJurusanOpts] = useState([]);
+  const [jurusanMapRev, setJurusanMapRev] = useState({});
+  const [jurusanMap, setJurusanMap] = useState({});
+  const [skillOptions, setSkillOptions] = useState([]); // State untuk opsi skill dari API
+
+  // Fetch Data Master (Jurusan & Skill)
+  useEffect(() => {
+    // 1. Fetch Jurusan
+    masterDataApi.getJurusan().then((res) => {
+      const data = res.data.data || [];
+      setJurusanOpts(data.map(j => j.nama_jurusan || j.nama));
+      const map = {}, mapRev = {};
+      data.forEach(j => { map[j.nama_jurusan || j.nama] = j.id; mapRev[j.id] = j.nama_jurusan || j.nama; });
+      setJurusanMap(map); setJurusanMapRev(mapRev);
+    }).catch(() => setJurusanOpts(["RPL", "TKJ", "MM"]));
+
+    // 2. Fetch Skill (PENTING: Agar ID valid sesuai database)
+    masterDataApi.getSkills().then((res) => {
+        setSkillOptions(res.data.data || []);
+    }).catch(() => {
+        // Fallback jika API gagal (Hanya untuk dev)
+        setSkillOptions([
+            { id: 1, nama: "ReactJS" }, { id: 2, nama: "NodeJS" }, { id: 3, nama: "Python" }
+        ]);
+    });
+  }, []);
+
+  const handleFile = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setPreview(URL.createObjectURL(file));
+      updateFormData({ foto: file });
+    }
+  };
+
+  const removeImage = (e) => {
+    e.preventDefault(); e.stopPropagation();
     setPreview(null);
     updateFormData({ foto: null });
-    if (fileRef.current) fileRef.current.value = "";
   };
 
   return (
-    <div className="space-y-6 ">
-      <div className="flex flex-col gap-5 md:flex-row md:items-center justify-between mb-6">
-        <div className="flex order-2 md:order-1 items-center gap-3">
-          <div className="p-2 bg-fourth rounded-lg text-primary">
-            <User size={20} />
-          </div>
-          <h3 className="font-bold text-primary">Personal Information</h3>
+    <div className="space-y-5">
+      <div className="flex justify-between items-center mb-2">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 bg-fourth rounded-lg text-primary"><User size={18} /></div>
+          <h3 className="font-bold text-primary text-lg">Personal Info</h3>
         </div>
-
-        <span className="text-[10px] order-1 md:order-2 bg-fourth w-42 px-3 py-1 rounded-full text-secondary font-bold uppercase">
-          Database Verification
-        </span>
+        <span className="text-[10px] bg-fourth px-3 py-1 rounded-full text-secondary font-bold uppercase">Verification</span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-        {/* Nama */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
         <div className="space-y-1">
-          <label className="text-[11px] font-bold text-secondary uppercase">
-            Nama Lengkap <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            placeholder="Nama lengkap"
-            value={formData.nama_alumni}
-            onChange={(e) => updateFormData({ nama_alumni: e.target.value })}
-            className="mt-2 w-full p-3 bg-white border border-fourth rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary"
-          />
+          <label className="text-[11px] font-bold text-secondary uppercase">Nama Lengkap <span className="text-red-500">*</span></label>
+          <input type="text" value={formData.nama_alumni || ""} onChange={(e) => updateFormData({ nama_alumni: e.target.value })} className="w-full p-2.5 bg-white border border-fourth rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Nama lengkap" />
+        </div>
+
+        <SelectInput label="Jurusan" placeholder="Pilih jurusan" options={jurusanOpts} value={jurusanMapRev[formData.id_jurusan] || formData.id_jurusan} onSelect={(val) => updateFormData({ id_jurusan: val ? jurusanMap[val] : "" })} />
+        <SelectInput label="Jenis Kelamin" placeholder="Pilih..." options={["Laki-laki", "Perempuan"]} value={formData.jenis_kelamin || ""} onSelect={(val) => updateFormData({ jenis_kelamin: val })} />
+
+        <div className="space-y-1">
+          <label className="text-[11px] font-bold text-secondary uppercase">No HP <span className="text-red-500">*</span></label>
+          <input type="text" value={formData.no_hp || ""} onChange={(e) => updateFormData({ no_hp: e.target.value })} className="w-full p-2.5 bg-white border border-fourth rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary" placeholder="08..." />
         </div>
 
         <div className="space-y-1">
-          <SmoothDropdown
-            label="Jurusan"
-            options={jurusanOptions}
-            placeholder="Pilih jurusan"
-            isRequired={true}
-            onSelect={(val) => updateFormData({ id_jurusan: jurusanMap[val] || val })}
-          />
+          <label className="text-[11px] font-bold text-secondary uppercase">NIS <span className="text-red-500">*</span></label>
+          <input type="text" value={formData.nis || ""} onChange={(e) => updateFormData({ nis: e.target.value })} className="w-full p-2.5 bg-white border border-fourth rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary" placeholder="NIS" />
         </div>
 
-        {/* Jenis Kelamin */}
         <div className="space-y-1">
-          <SmoothDropdown
-            label="Jenis Kelamin"
-            options={["Laki-laki", "Perempuan"]}
-            placeholder="Pilih jenis kelamin"
-            isRequired={true}
-            onSelect={(val) => updateFormData({ jenis_kelamin: val })}
-          />
+          <label className="text-[11px] font-bold text-secondary uppercase">NISN <span className="text-red-500">*</span></label>
+          <input type="text" value={formData.nisn || ""} onChange={(e) => updateFormData({ nisn: e.target.value })} className="w-full p-2.5 bg-white border border-fourth rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary" placeholder="NISN" />
         </div>
 
-        {/* No HP */}
+        <YearsInput label="Tahun Masuk" isRequired={true} value={formData.tahun_masuk} onSelect={(val) => updateFormData({ tahun_masuk: val })} />
+        <YearsInput label="Tahun Lulus" isRequired={true} value={formData.tahun_lulus} onSelect={(val) => updateFormData({ tahun_lulus: val })} />
+
         <div className="space-y-1">
-          <label className="text-[11px] font-bold text-secondary uppercase">
-            Nomor HP <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            placeholder="08..."
-            value={formData.no_hp}
-            onChange={(e) => updateFormData({ no_hp: e.target.value })}
-            className="mt-2 w-full p-3 bg-white border border-fourth rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
-
-        {/* NIS */}
-        <div className="space-y-1">
-          <label className="text-[11px] font-bold text-secondary uppercase">
-            NIS <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            placeholder="Nomor induk sekolah"
-            value={formData.nis}
-            onChange={(e) => updateFormData({ nis: e.target.value })}
-            className="mt-2 w-full p-3 bg-white border border-fourth rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
-
-        {/* NISN */}
-        <div className="space-y-1">
-          <label className="text-[11px] font-bold text-secondary uppercase">
-            NISN <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            placeholder="Nomor induk nasional"
-            value={formData.nisn}
-            onChange={(e) => updateFormData({ nisn: e.target.value })}
-            className="mt-2 w-full p-3 bg-white border border-fourth rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
-
-        {/* Tahun Masuk */}
-        <div className="space-y-1">
-          <YearsInput label={"Tahun Masuk"} onSelect={(val) => updateFormData({ tahun_masuk: val })} />
-        </div>
-
-        {/* Tahun Lulus */}
-        <div className="space-y-1">
-          <YearsInput label={"Tahun Lulus"} onSelect={(val) => updateFormData({ tahun_lulus: val })} />
-        </div>
-
-        {/* Alamat*/}
-        <div className="space-y-1">
-          <label className="text-[11px] font-bold text-secondary uppercase">
-            Alamat <span className="text-red-500">*</span>
-          </label>
-          <textarea
-            placeholder="Alamat lengkap rumah..."
-            rows="6"
-            value={formData.alamat}
-            onChange={(e) => updateFormData({ alamat: e.target.value })}
-            className="mt-2 w-full h-38 p-3 bg-white border border-fourth rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary resize-none transition-all"
-          ></textarea>
-        </div>
-
-        {/* Foto*/}
-        <div className="space-y-1 transition-all duration-300">
-          <label className="text-[11px] font-bold text-secondary uppercase">
-            Foto <span className="text-red-500">*</span>
-          </label>
-
-          <label className="mt-2 flex flex-col items-center justify-center gap-3 border-2 border-dashed border-fourth rounded-xl p-5 cursor-pointer hover:border-primary transition-all duration-600 ease-in-out">
-            {preview ? (
-              <img
-                src={preview}
-                alt="preview"
-                className="w-24 h-24 object-cover rounded-lg border"
-              />
-            ) : (
-              <div className="flex flex-col items-center text-third">
-                <ImageIcon size={32} />
-                <span className="text-xs">Upload foto</span>
-              </div>
-            )}
-
-            <div className="flex items-center gap-2 text-xs bg-fourth px-3 py-2 rounded-lg text-primary font-semibold">
-              <Upload size={14} />
-              Pilih Gambar
-            </div>
-
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImage}
-              className="hidden"
-            />
-          </label>
-
-          {preview && (
-            <button
-              type="button"
-              onClick={removeImage}
-              className="text-xs text-red-500 hover:underline cursor-pointer"
-            >
-              Hapus Foto
-            </button>
-          )}
-
-          <p className="text-[10px] text-third">PNG / JPG maksimal 2MB</p>
-        </div>
-
-        {/* Tempat Lahir*/}
-        <div className="space-y-1">
-          <label className="text-[11px] font-bold text-secondary uppercase tracking-wider">
-            Tempat Lahir <span className="text-red-500">*</span>
-          </label>
-
-          <div className="relative mt-2 group">
-            {/* Icon Section */}
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none border-r border-fourth pr-2">
-              <MapPin
-                size={18}
-                className="text-third group-focus-within:text-primary transition-colors"
-              />
-            </div>
-
-            {/* Input Field */}
-            <input
-              type="text"
-              placeholder="Kota kelahiran (Contoh: Bandung)"
-              value={formData.tempat_lahir}
-              onChange={(e) => updateFormData({ tempat_lahir: e.target.value })}
-              className="w-full pl-14 p-3 bg-white border border-fourth rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder:text-third/50"
-            />
+          <label className="text-[11px] font-bold text-secondary uppercase">Tempat Lahir <span className="text-red-500">*</span></label>
+          <div className="relative">
+            <MapPin size={16} className="absolute left-3 top-3 text-third" />
+            <input type="text" value={formData.tempat_lahir || ""} onChange={(e) => updateFormData({ tempat_lahir: e.target.value })} className="w-full pl-9 p-2.5 bg-white border border-fourth rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary" placeholder="Kota" />
           </div>
         </div>
 
-        {/* Tanggal Lahir */}
-        <div className="space-y-1">
-          <DateOfBirthInput isRequired={true} onChange={(val) => updateFormData({ tanggal_lahir: val })} />
+        <DateOfBirthInput isRequired={true} value={formData.tanggal_lahir} onChange={(val) => updateFormData({ tanggal_lahir: val })} />
+
+        <div className="space-y-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+           <div className="space-y-1">
+              <label className="text-[11px] font-bold text-secondary uppercase">Alamat <span className="text-red-500">*</span></label>
+              <textarea rows="4" value={formData.alamat || ""} onChange={(e) => updateFormData({ alamat: e.target.value })} className="w-full p-2.5 bg-white border border-fourth rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary resize-none" placeholder="Alamat lengkap..." />
+           </div>
+           
+           <div className="space-y-1">
+              <label className="text-[11px] font-bold text-secondary uppercase">Foto <span className="text-red-500">*</span></label>
+              <label className="flex items-center gap-4 border border-dashed border-fourth rounded-xl p-3 cursor-pointer hover:border-primary h-[106px] relative group transition-all">
+                {preview ? (
+                  <img src={preview} alt="preview" className="w-20 h-20 object-cover rounded-lg border border-gray-200" />
+                ) : (
+                  <div className="p-4 bg-fourth rounded-lg text-third"><ImageIcon size={24} /></div>
+                )}
+                <div className="flex-1">
+                  <div className="text-xs font-bold text-primary mb-1 flex items-center gap-1"><Upload size={12} /> Pilih File</div>
+                  <span className="text-[10px] text-gray-400">Max 2MB (PNG/JPG)</span>
+                  <input type="file" accept="image/*" onChange={handleFile} className="hidden" />
+                </div>
+                {preview && (
+                  <button onClick={removeImage} className="absolute top-2 right-2 p-1 bg-white border border-red-100 rounded-full text-red-500 hover:bg-red-50 transition-colors shadow-sm">
+                    <X size={14} />
+                  </button>
+                )}
+              </label>
+           </div>
         </div>
 
-        {/* Sosmed*/}
+        {/* SOSMED & SKILL SEJAJAR */}
         <div className="space-y-1">
-          <SosmedInput onChange={(val) => updateFormData({ social_media: val })} />
+          <SosmedInput value={formData.social_media} onChange={(val) => updateFormData({ social_media: val })} />
         </div>
-
-        {/* Skills*/}
+        
+        {/* SKILL: Menggunakan API Skill Options yang valid */}
         <div className="space-y-1">
-          <SkillInput onChange={(val) => updateFormData({ skills: val })} />
+          <MultiSelectDropdown 
+            label="Keahlian / Skills" 
+            placeholder="Cari skill..." 
+            options={skillOptions} // Menggunakan data dari API
+            selected={formData.skills || []} // Menyimpan array ID
+            onChange={(val) => updateFormData({ skills: val })} // Mengirim array ID ke parent
+          />
         </div>
       </div>
 
-      <div className="pt-8 flex justify-between border-t border-fourth mt-6">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 px-4 md:px-6 py-2 border border-fourth rounded-xl text-xs md:text-sm font-bold text-secondary hover:bg-fourth transition-all cursor-pointer"
-        >
-          <ArrowLeft size={16} /> Kembali
+      <div className="pt-4 mt-4 flex justify-between border-t border-fourth">
+        <button onClick={onBack} className="flex items-center gap-2 px-4 py-2 border border-fourth rounded-xl text-xs font-bold text-secondary hover:bg-fourth transition-all">
+          <ArrowLeft size={14} /> Kembali
         </button>
-
-        <button
-          onClick={onNext}
-          className="flex items-center gap-2 px-4 md:px-8 py-3 bg-primary text-white rounded-xl text-xs md:text-sm font-bold hover:opacity-90 transition-all cursor-pointer"
-        >
-          Selanjutnya <ArrowRight size={16} />
+        <button onClick={onNext} className="flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-xl text-xs font-bold hover:opacity-90 transition-all">
+          Selanjutnya <ArrowRight size={14} />
         </button>
       </div>
     </div>
