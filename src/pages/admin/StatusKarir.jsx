@@ -16,33 +16,7 @@ import {
   ChevronDown
 } from "lucide-react";
 import { alertSuccess, alertError, alertConfirm } from "../../utilitis/alert";
-
-// --- DUMMY DATA SEED ---
-const DUMMY_UNIV = [
-  { id: 1, nama: "Universitas Indonesia", jurusan: ["Ilmu Hukum", "Psikologi"] },
-  { id: 2, nama: "Universitas Gadjah Mada", jurusan: ["Manajemen", "Akuntansi"] },
-];
-
-const DUMMY_PRODI = [
-  { id: 1, nama: "Teknik Informatika" },
-  { id: 2, nama: "Sistem Informasi" },
-  { id: 3, nama: "Manajemen" },
-  { id: 4, nama: "Akuntansi" },
-  { id: 5, nama: "Ilmu Komunikasi" },
-  { id: 6, nama: "Ilmu Hukum" },
-  { id: 7, nama: "Psikologi" },
-  { id: 8, nama: "Kedokteran" },
-];
-
-const DUMMY_WIRAUSAHA = [
-  { id: 1, nama: "Kuliner" },
-  { id: 2, nama: "Fashion" },
-];
-
-const DUMMY_POSISI = [
-  { id: 1, nama: "Software Engineer" },
-  { id: 2, nama: "Data Analyst" },
-];
+import { adminApi } from "../../api/admin";
 
 // --- KOMPONEN CUSTOM: MULTI-SELECT DROPDOWN ---
 const MultiSelectDropdown = ({ options = [], selected = [], onChange, placeholder }) => {
@@ -161,31 +135,33 @@ const ManagedTable = ({
   const handleCreate = async () => {
     if (!formData.nama.trim()) return;
     setSaving(true);
-    setTimeout(() => {
-      const payload = {
-        [nameKey]: formData.nama.trim(),
-        jurusan: withJurusan ? formData.jurusan : []
-      };
-      onCreate(payload);
+    try {
+      const payload = { [nameKey]: formData.nama.trim() };
+      if (withJurusan) payload.jurusan = formData.jurusan;
+      await onCreate(payload);
       resetForm();
       setIsAdding(false);
+    } catch (e) {
+      alertError(e?.response?.data?.message || "Gagal menyimpan data");
+    } finally {
       setSaving(false);
-    }, 500);
+    }
   };
 
   const handleUpdate = async (id) => {
     if (!formData.nama.trim()) return;
     setSaving(true);
-    setTimeout(() => {
-      const payload = {
-        [nameKey]: formData.nama.trim(),
-        jurusan: withJurusan ? formData.jurusan : []
-      };
-      onUpdate(id, payload);
+    try {
+      const payload = { [nameKey]: formData.nama.trim() };
+      if (withJurusan) payload.jurusan = formData.jurusan;
+      await onUpdate(id, payload);
       setEditId(null);
       resetForm();
+    } catch (e) {
+      alertError(e?.response?.data?.message || "Gagal mengubah data");
+    } finally {
       setSaving(false);
-    }, 500);
+    }
   };
 
   const startEdit = (item) => {
@@ -193,14 +169,18 @@ const ManagedTable = ({
     setIsAdding(false);
     setFormData({
       nama: item.nama,
-      jurusan: Array.isArray(item.jurusan) ? item.jurusan : []
+      jurusan: Array.isArray(item.jurusan) ? item.jurusan : (item.jurusan ? [item.jurusan] : [])
     });
   };
 
   const handleDelete = async (id, name) => {
     const { isConfirmed } = await alertConfirm(`Hapus "${name}"?`);
     if (!isConfirmed) return;
-    onDelete(id);
+    try {
+      await onDelete(id);
+    } catch (e) {
+      alertError(e?.response?.data?.message || "Gagal menghapus data");
+    }
   };
 
   // Logika untuk menentukan tinggi tabel
@@ -328,10 +308,10 @@ const ManagedTable = ({
                         />
                       ) : (
                         <div className="flex flex-wrap gap-1">
-                          {item.jurusan && item.jurusan.length > 0 ? (
-                            item.jurusan.map((j, idx) => (
+                          {item.jurusan ? (
+                            (Array.isArray(item.jurusan) ? item.jurusan : [item.jurusan]).map((j, idx) => (
                               <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
-                                {j}
+                                {typeof j === 'object' ? j.nama : j}
                               </span>
                             ))
                           ) : (
@@ -368,7 +348,6 @@ const ManagedTable = ({
 
 // --- MAIN PAGE COMPONENT ---
 export default function StatusKarir() {
-  const [selectedFormat, setSelectedFormat] = useState("CSV");
   const [selectedReport, setSelectedReport] = useState("Data Universitas");
   const [exportingReport, setExportingReport] = useState(false);
 
@@ -378,58 +357,137 @@ export default function StatusKarir() {
   const [posisiData, setPosisiData] = useState([]);
   const [loading, setLoading] = useState({ univ: true, prodi: true, wirausaha: true, posisi: true });
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setUnivData(DUMMY_UNIV);
-      setProdiData(DUMMY_PRODI);
-      setWirausahaData(DUMMY_WIRAUSAHA);
-      setPosisiData(DUMMY_POSISI);
-      setLoading({ univ: false, prodi: false, wirausaha: false, posisi: false });
-    }, 800);
-    return () => clearTimeout(timer);
+  // --- Fetch helpers ---
+  const fetchUniv = useCallback(async () => {
+    try {
+      const res = await adminApi.getStatusKarierUniversitas();
+      setUnivData(res.data?.data || []);
+    } catch { setUnivData([]); }
+    finally { setLoading(prev => ({ ...prev, univ: false })); }
   }, []);
 
-  const handleCreateLocal = (category, data) => {
-    const newItem = {
-      id: Math.floor(Math.random() * 10000) + 100,
-      nama: data.nama_universitas || data.nama_prodi || data.nama_bidang || data.nama_posisi,
-      jurusan: data.jurusan || []
-    };
-    if (category === 'univ') setUnivData(prev => [...prev, newItem]);
-    if (category === 'prodi') setProdiData(prev => [...prev, newItem]);
-    if (category === 'wirausaha') setWirausahaData(prev => [...prev, newItem]);
-    if (category === 'posisi') setPosisiData(prev => [...prev, newItem]);
+  const fetchProdi = useCallback(async () => {
+    try {
+      const res = await adminApi.getStatusKarierProdi();
+      setProdiData(res.data?.data || []);
+    } catch { setProdiData([]); }
+    finally { setLoading(prev => ({ ...prev, prodi: false })); }
+  }, []);
+
+  const fetchWirausaha = useCallback(async () => {
+    try {
+      const res = await adminApi.getStatusKarierBidangUsaha();
+      setWirausahaData(res.data?.data || []);
+    } catch { setWirausahaData([]); }
+    finally { setLoading(prev => ({ ...prev, wirausaha: false })); }
+  }, []);
+
+  const fetchPosisi = useCallback(async () => {
+    try {
+      const res = await adminApi.getStatusKarierPosisi();
+      setPosisiData(res.data?.data || []);
+    } catch { setPosisiData([]); }
+    finally { setLoading(prev => ({ ...prev, posisi: false })); }
+  }, []);
+
+  useEffect(() => {
+    fetchUniv();
+    fetchProdi();
+    fetchWirausaha();
+    fetchPosisi();
+  }, [fetchUniv, fetchProdi, fetchWirausaha, fetchPosisi]);
+
+  // --- CRUD handlers ---
+  const handleCreateUniv = async (data) => {
+    await adminApi.createStatusKarierUniversitas(data);
     alertSuccess("Data berhasil ditambahkan!");
+    fetchUniv();
   };
-
-  const handleUpdateLocal = (category, id, data) => {
-    const newName = Object.values(data)[0];
-    const newJurusan = data.jurusan;
-    const updater = (prevData) => prevData.map(item =>
-      item.id === id ? { ...item, nama: newName, jurusan: newJurusan !== undefined ? newJurusan : item.jurusan } : item
-    );
-    if (category === 'univ') setUnivData(updater);
-    if (category === 'prodi') setProdiData(updater);
-    if (category === 'wirausaha') setWirausahaData(updater);
-    if (category === 'posisi') setPosisiData(updater);
+  const handleUpdateUniv = async (id, data) => {
+    await adminApi.updateStatusKarierUniversitas(id, data);
     alertSuccess("Data berhasil diubah!");
+    fetchUniv();
   };
-
-  const handleDeleteLocal = (category, id) => {
-    const filter = (prevData) => prevData.filter(item => item.id !== id);
-    if (category === 'univ') setUnivData(filter);
-    if (category === 'prodi') setProdiData(filter);
-    if (category === 'wirausaha') setWirausahaData(filter);
-    if (category === 'posisi') setPosisiData(filter);
+  const handleDeleteUniv = async (id) => {
+    await adminApi.deleteStatusKarierUniversitas(id);
     alertSuccess("Data berhasil dihapus!");
+    fetchUniv();
   };
 
+  const handleCreateProdi = async (data) => {
+    await adminApi.createStatusKarierProdi(data);
+    alertSuccess("Data berhasil ditambahkan!");
+    fetchProdi();
+  };
+  const handleUpdateProdi = async (id, data) => {
+    await adminApi.updateStatusKarierProdi(id, data);
+    alertSuccess("Data berhasil diubah!");
+    fetchProdi();
+  };
+  const handleDeleteProdi = async (id) => {
+    await adminApi.deleteStatusKarierProdi(id);
+    alertSuccess("Data berhasil dihapus!");
+    fetchProdi();
+  };
+
+  const handleCreateWirausaha = async (data) => {
+    await adminApi.createStatusKarierBidangUsaha(data);
+    alertSuccess("Data berhasil ditambahkan!");
+    fetchWirausaha();
+  };
+  const handleUpdateWirausaha = async (id, data) => {
+    await adminApi.updateStatusKarierBidangUsaha(id, data);
+    alertSuccess("Data berhasil diubah!");
+    fetchWirausaha();
+  };
+  const handleDeleteWirausaha = async (id) => {
+    await adminApi.deleteStatusKarierBidangUsaha(id);
+    alertSuccess("Data berhasil dihapus!");
+    fetchWirausaha();
+  };
+
+  const handleCreatePosisi = async (data) => {
+    await adminApi.createStatusKarierPosisi(data);
+    alertSuccess("Data berhasil ditambahkan!");
+    fetchPosisi();
+  };
+  const handleUpdatePosisi = async (id, data) => {
+    await adminApi.updateStatusKarierPosisi(id, data);
+    alertSuccess("Data berhasil diubah!");
+    fetchPosisi();
+  };
+  const handleDeletePosisi = async (id) => {
+    await adminApi.deleteStatusKarierPosisi(id);
+    alertSuccess("Data berhasil dihapus!");
+    fetchPosisi();
+  };
+
+  // --- Export handler (CSV only) ---
   const handleBuatLaporan = async () => {
     setExportingReport(true);
-    setTimeout(() => {
-      alertSuccess('Laporan berhasil diunduh (Simulasi)');
+    try {
+      const typeMap = {
+        "Data Universitas": "universitas",
+        "Data Program Studi": "prodi",
+        "Bidang Wirausaha": "bidang-usaha",
+        "Posisi Pekerjaan": "posisi",
+      };
+      const type = typeMap[selectedReport] || "universitas";
+      const res = await adminApi.exportStatusKarierReport(type);
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `laporan-${type}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      alertSuccess("Laporan berhasil diunduh!");
+    } catch (e) {
+      alertError(e?.response?.data?.message || "Gagal mengunduh laporan");
+    } finally {
       setExportingReport(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -438,18 +496,18 @@ export default function StatusKarir() {
         <div className="lg:col-span-8 space-y-6 order-last lg:order-first">
           
           <ManagedTable
-            title="Data Universitas & Jurusan"
+            title="Data Universitas"
             icon={School}
             data={univData}
             loading={loading.univ}
             placeholder="Nama Universitas"
             onAddLabel="Tambah Kampus"
-            nameKey="nama_universitas"
+            nameKey="nama"
             withJurusan={true}
             dropdownOptions={prodiData}
-            onCreate={(data) => handleCreateLocal('univ', data)}
-            onUpdate={(id, data) => handleUpdateLocal('univ', id, data)}
-            onDelete={(id) => handleDeleteLocal('univ', id)}
+            onCreate={handleCreateUniv}
+            onUpdate={handleUpdateUniv}
+            onDelete={handleDeleteUniv}
           />
 
           <ManagedTable
@@ -459,10 +517,10 @@ export default function StatusKarir() {
             loading={loading.prodi}
             placeholder="Contoh: Ilmu Komunikasi"
             onAddLabel="Tambah Prodi"
-            nameKey="nama_prodi"
-            onCreate={(data) => handleCreateLocal('prodi', data)}
-            onUpdate={(id, data) => handleUpdateLocal('prodi', id, data)}
-            onDelete={(id) => handleDeleteLocal('prodi', id)}
+            nameKey="nama"
+            onCreate={handleCreateProdi}
+            onUpdate={handleUpdateProdi}
+            onDelete={handleDeleteProdi}
           />
 
           <ManagedTable
@@ -473,9 +531,9 @@ export default function StatusKarir() {
             placeholder="Contoh: Kuliner"
             onAddLabel="Tambah Bidang"
             nameKey="nama_bidang"
-            onCreate={(data) => handleCreateLocal('wirausaha', data)}
-            onUpdate={(id, data) => handleUpdateLocal('wirausaha', id, data)}
-            onDelete={(id) => handleDeleteLocal('wirausaha', id)}
+            onCreate={handleCreateWirausaha}
+            onUpdate={handleUpdateWirausaha}
+            onDelete={handleDeleteWirausaha}
           />
 
           <ManagedTable
@@ -486,9 +544,9 @@ export default function StatusKarir() {
             placeholder="Contoh: Staff"
             onAddLabel="Tambah Posisi"
             nameKey="nama_posisi"
-            onCreate={(data) => handleCreateLocal('posisi', data)}
-            onUpdate={(id, data) => handleUpdateLocal('posisi', id, data)}
-            onDelete={(id) => handleDeleteLocal('posisi', id)}
+            onCreate={handleCreatePosisi}
+            onUpdate={handleUpdatePosisi}
+            onDelete={handleDeletePosisi}
           />
         </div>
 
@@ -511,9 +569,7 @@ export default function StatusKarir() {
               <div className="space-y-1.5">
                 <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Format Laporan</label>
                 <div className="flex gap-2">
-                  {["CSV", "PDF"].map(fmt => (
-                    <button key={fmt} onClick={() => setSelectedFormat(fmt)} className={`cursor-pointer flex-1 py-2.5 rounded-lg text-xs font-bold transition-all hover:opacity-90 ${selectedFormat === fmt ? "bg-primary text-white shadow-md" : "bg-gray-50 text-gray-400 border border-gray-200"}`}>{fmt}</button>
-                  ))}
+                  <div className="flex-1 py-2.5 rounded-lg text-xs font-bold bg-primary text-white shadow-md text-center">CSV</div>
                 </div>
               </div>
               <button onClick={handleBuatLaporan} disabled={exportingReport} className="cursor-pointer w-full py-2.5 bg-primary text-white rounded-lg font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-md mt-4 disabled:opacity-50">

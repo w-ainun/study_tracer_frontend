@@ -179,4 +179,48 @@ export const adminApi = {
 
   // Tipe Pekerjaan
   getTipePekerjaan() { return api.get('/admin/master/tipe-pekerjaan'); },
+
+  // ── Status Karier Management ───────────────────
+  // Referensi Universitas
+  getStatusKarierUniversitas() { return api.get('/admin/status-karier/universitas'); },
+  createStatusKarierUniversitas(data) { return api.post('/admin/status-karier/universitas', data); },
+  updateStatusKarierUniversitas(id, data) { return api.put(`/admin/status-karier/universitas/${id}`, data); },
+  deleteStatusKarierUniversitas(id) { return api.delete(`/admin/status-karier/universitas/${id}`); },
+
+  // Program Studi
+  getStatusKarierProdi() { return api.get('/admin/status-karier/prodi'); },
+  createStatusKarierProdi(data) { return api.post('/admin/status-karier/prodi', data); },
+  updateStatusKarierProdi(id, data) { return api.put(`/admin/status-karier/prodi/${id}`, data); },
+  deleteStatusKarierProdi(id) { return api.delete(`/admin/status-karier/prodi/${id}`); },
+
+  // Bidang Wirausaha
+  getStatusKarierBidangUsaha() { return api.get('/admin/status-karier/bidang-usaha'); },
+  createStatusKarierBidangUsaha(data) { return api.post('/admin/status-karier/bidang-usaha', data); },
+  updateStatusKarierBidangUsaha(id, data) { return api.put(`/admin/status-karier/bidang-usaha/${id}`, data); },
+  deleteStatusKarierBidangUsaha(id) { return api.delete(`/admin/status-karier/bidang-usaha/${id}`); },
+
+  // Posisi Pekerjaan
+  getStatusKarierPosisi() { return api.get('/admin/status-karier/posisi'); },
+  createStatusKarierPosisi(data) { return api.post('/admin/status-karier/posisi', data); },
+  updateStatusKarierPosisi(id, data) { return api.put(`/admin/status-karier/posisi/${id}`, data); },
+  deleteStatusKarierPosisi(id) { return api.delete(`/admin/status-karier/posisi/${id}`); },
+
+  // Report & Export
+  getStatusKarierReport() { return api.get('/admin/status-karier/report'); },
+  exportStatusKarierReport(type) {
+    return api.get('/admin/status-karier/export', { params: { type }, responseType: 'blob' });
+  },
+
+  // ── Kuesioner – Pertanyaan Status & Jawaban ────
+  updatePertanyaanStatus(kuesionerId, pertanyaanId, data) {
+    return api.patch(`/admin/kuesioner/${kuesionerId}/pertanyaan/${pertanyaanId}/status`, data);
+  },
+
+  getKuesionerJawaban(kuesionerId, filters = {}) {
+    return api.get(`/admin/kuesioner/${kuesionerId}/jawaban`, { params: filters });
+  },
+
+  getKuesionerJawabanDetail(kuesionerId, alumniId) {
+    return api.get(`/admin/kuesioner/${kuesionerId}/jawaban/${alumniId}`);
+  },
 };

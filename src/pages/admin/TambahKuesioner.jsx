@@ -6,41 +6,36 @@ import {
   Plus,
   FileQuestionMark,
   ArrowLeft,
+  Loader2,
 } from "lucide-react";
 import SmoothDropdown from "../../components/admin/SmoothDropdown";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { adminApi } from "../../api/admin";
+import { alertSuccess, alertError } from "../../utilitis/alert";
 
 export default function TambahPertanyaan() {
-  // 1. State untuk kategori yang dipilih (Default: Bekerja)
+  const location = useLocation();
+  const navigate = useNavigate();
+  const kuesionerId = location.state?.kuesionerId;
+
   const [selectedCategory, setSelectedCategory] = useState("Bekerja");
+  const [pertanyaanText, setPertanyaanText] = useState("");
+  const [tipePertanyaan, setTipePertanyaan] = useState("Pilihan Tunggal");
+
+  // Map display names to backend enum values
+  const tipeMap = {
+    "Pilihan Tunggal": "pilihan_tunggal",
+    "Pilihan Ganda": "pilihan_ganda",
+    "Teks Pendek": "teks_pendek",
+    "Skala": "skala",
+  };
+  const [judulBagian, setJudulBagian] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const [options, setOptions] = useState([
     "Bekerja Penuh Waktu",
     "Tidak Bekerja"
   ]);
-
-  // Data mapping untuk judul pertanyaan berdasarkan kategori
-  const structureData = {
-    "Bekerja": [
-      { id: 1, label: "Status Pekerjaan", active: true },
-      { id: 2, label: "Relevansi Pekerjaan", active: false },
-      { id: 3, label: "Rentang Gaji", active: false },
-    ],
-    "Kuliah": [
-      { id: 1, label: "Nama Perguruan Tinggi", active: true },
-      { id: 2, label: "Program Studi", active: false },
-      { id: 3, label: "Linearitas Studi", active: false },
-    ],
-    "Wirausaha": [
-      { id: 1, label: "Bidang Usaha", active: true },
-      { id: 2, label: "Omzet Bulanan", active: false },
-      { id: 3, label: "Jumlah Karyawan", active: false },
-    ],
-    "Cari Kerja": [
-      { id: 1, label: "Lama Mencari Kerja", active: true },
-      { id: 2, label: "Kendala Utama", active: false },
-    ]
-  };
 
   const addOption = () => setOptions([...options, ""]);
 
@@ -57,7 +52,33 @@ export default function TambahPertanyaan() {
     }
   };
 
-  console.log(selectedCategory)
+  const handleSimpan = async () => {
+    if (!kuesionerId) {
+      alertError("Kuesioner belum dipilih. Kembali dan pilih kuesioner terlebih dahulu.");
+      return;
+    }
+    if (!pertanyaanText.trim()) {
+      alertError("Pertanyaan wajib diisi.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const payload = {
+        pertanyaan: pertanyaanText.trim(),
+        tipe_pertanyaan: tipeMap[tipePertanyaan] || tipePertanyaan,
+        kategori: selectedCategory,
+        judul_bagian: judulBagian || null,
+        opsi: tipePertanyaan === "Teks Pendek" ? [] : options.filter(o => o.trim()),
+      };
+      await adminApi.addPertanyaan(kuesionerId, payload);
+      alertSuccess("Pertanyaan berhasil ditambahkan!");
+      navigate("/wb-admin/kuisoner", { replace: true });
+    } catch (e) {
+      alertError(e?.response?.data?.message || "Gagal menyimpan pertanyaan.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen font-sans text-slate-700">
@@ -75,25 +96,41 @@ export default function TambahPertanyaan() {
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-2 text-[#3D5A5C] font-bold">
             <FileQuestionMark size={20} />
-            <h2>Pembuatan Kuesioner</h2>
+            <h2>Tambah Pertanyaan {kuesionerId ? `(Kuesioner #${kuesionerId})` : ""}</h2>
           </div>
           <span className="bg-slate-100 text-slate-500 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">
             Mode Draft
           </span>
         </div>
 
+        {!kuesionerId && (
+          <div className="bg-orange-50 border border-orange-200 text-orange-700 text-sm rounded-xl p-4 mb-6">
+            Kuesioner belum dipilih. <Link to="/wb-admin/kuisoner" className="underline font-bold">Kembali pilih kuesioner</Link>.
+          </div>
+        )}
+
         <div className="grid grid-cols-12 gap-12">
           {/* Left Column: Form */}
           <div className="col-span-8 space-y-6">
             <div>
-              {/* Tambahkan onChange pada SmoothDropdown */}
               <SmoothDropdown
                 label="Kategori Status Karier"
-                options={Object.keys(structureData)}
+                options={["Bekerja", "Kuliah", "Wirausaha", "Cari Kerja"]}
                 placeholder="Pilih status karier"
                 isRequired={true}
                 value={selectedCategory}
                 onSelect={(val) => setSelectedCategory(val)}
+              />
+            </div>
+
+            <div>
+              <SmoothDropdown
+                label="Tipe Pertanyaan"
+                options={["Pilihan Tunggal", "Pilihan Ganda", "Teks Pendek", "Skala"]}
+                placeholder="Pilih tipe pertanyaan"
+                isRequired={true}
+                value={tipePertanyaan}
+                onSelect={(val) => setTipePertanyaan(val)}
               />
             </div>
 
@@ -104,16 +141,20 @@ export default function TambahPertanyaan() {
               <textarea
                 placeholder="masukan pertanyaan kuisoner.."
                 rows={4}
+                value={pertanyaanText}
+                onChange={(e) => setPertanyaanText(e.target.value)}
                 className="mt-2 w-full p-3 bg-white border border-fourth rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary resize-none"
               />
             </div>
 
             <div>
               <SmoothDropdown
-                label="Judul Pertanyaan"
-                options={["Riwayat Pekerjaan", "Identitas Diri"]}
+                label="Judul Bagian"
+                options={["Riwayat Pekerjaan", "Identitas Diri", "Pendidikan", "Wirausaha", "Pencari Kerja"]}
                 placeholder="Pilih judul bagian"
-                isRequired={true}
+                isRequired={false}
+                value={judulBagian}
+                onSelect={(val) => setJudulBagian(val)}
               />
             </div>
 
@@ -152,37 +193,30 @@ export default function TambahPertanyaan() {
             </div>
           </div>
 
-          {/* Right Column: Structure (Dinamis berdasarkan selectedCategory) */}
+          {/* Right Column: Info */}
           <div className="col-span-4 border-l border-gray-100 pl-8">
             <h3 className="text-sm font-black text-slate-800 mb-6 uppercase tracking-wider">
-              Structure: {selectedCategory}
+              Ringkasan
             </h3>
             <div className="space-y-3">
-              {/* Merender data berdasarkan kategori yang dipilih */}
-              {(structureData[selectedCategory] || []).map((item) => (
-                <div
-                  key={item.id}
-                  className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
-                    item.active
-                    ? "bg-slate-50 border-[#3D5A5C]/20 shadow-sm"
-                    : "bg-white border-gray-100 opacity-60"
-                  }`}
-                >
-                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                    item.active ? "bg-[#3D5A5C] text-white" : "bg-slate-100 text-slate-400"
-                  }`}>
-                    {item.id}
-                  </span>
-                  <span className={`text-sm font-bold ${item.active ? "text-[#3D5A5C]" : "text-slate-500"}`}>
-                    {item.label}
-                  </span>
+              <div className="p-3 rounded-xl border bg-slate-50 border-gray-200">
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Kategori</p>
+                <p className="text-sm font-bold text-[#3D5A5C]">{selectedCategory}</p>
+              </div>
+              <div className="p-3 rounded-xl border bg-slate-50 border-gray-200">
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Tipe</p>
+                <p className="text-sm font-bold text-[#3D5A5C]">{tipePertanyaan}</p>
+              </div>
+              {judulBagian && (
+                <div className="p-3 rounded-xl border bg-slate-50 border-gray-200">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Judul Bagian</p>
+                  <p className="text-sm font-bold text-[#3D5A5C]">{judulBagian}</p>
                 </div>
-              ))}
-
-              <button className="w-full mt-4 flex items-center justify-center gap-2 p-3 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 font-bold text-xs hover:border-[#3D5A5C] hover:text-[#3D5A5C] transition-all group">
-                <Plus size={16} className="group-hover:rotate-90 transition-transform" />
-                Tambah Pertanyaan Baru
-              </button>
+              )}
+              <div className="p-3 rounded-xl border bg-slate-50 border-gray-200">
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Jumlah Opsi</p>
+                <p className="text-sm font-bold text-[#3D5A5C]">{(tipePertanyaan === "Teks Pendek") ? "-" : options.filter(o => o.trim()).length}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -192,8 +226,12 @@ export default function TambahPertanyaan() {
             <button className="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-bold shadow-sm hover:bg-gray-50 transition-all">
               <Eye size={18} /> Pratinjau
             </button>
-            <button className="flex items-center gap-2 px-8 py-2.5 bg-[#3D5A5C] text-white rounded-xl text-sm font-bold shadow-md hover:bg-[#2D4345] transition-all">
-              <Save size={18} /> Simpan
+            <button
+              onClick={handleSimpan}
+              disabled={saving || !kuesionerId}
+              className="flex items-center gap-2 px-8 py-2.5 bg-[#3D5A5C] text-white rounded-xl text-sm font-bold shadow-md hover:bg-[#2D4345] transition-all disabled:opacity-50"
+            >
+              {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Simpan
             </button>
           </div>
         </div>

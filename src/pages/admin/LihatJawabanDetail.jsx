@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { 
   ArrowLeft, 
   Calendar, 
@@ -7,62 +7,74 @@ import {
   CheckCircle2, 
   Printer, 
   Download,
-  Quote
+  Quote,
+  Loader2
 } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { adminApi } from "../../api/admin";
+import { alertError } from "../../utilitis/alert";
 
 export default function LihatJawabanDetail() {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id: alumniId } = useParams();
+  const location = useLocation();
+  const kuesionerId = location.state?.kuesionerId;
 
-  // --- MOCK DATA ---
-  const alumniProfile = {
-    id: id || "1",
-    nama: "Sarah Jenkins",
-    nim: "2019004512",
-    jurusan: "Teknik Informatika",
-    tahunLulus: "2023",
-    tanggalIsi: "24 Oktober 2023",
-    status: "Bekerja Full Time",
-    avatar: "https://i.pravatar.cc/150?u=1"
-  };
+  const [loading, setLoading] = useState(true);
+  const [alumniProfile, setAlumniProfile] = useState(null);
+  const [surveyData, setSurveyData] = useState([]);
 
-  const surveyData = [
-    {
-      id: 1,
-      pertanyaan: "Apakah pekerjaan Anda saat ini sesuai dengan jurusan saat di SMK?",
-      tipe: "pilihan",
-      jawabanUser: "Sangat sesuai",
-      opsi: ["Sangat sesuai", "Cukup sesuai", "Kurang sesuai", "Tidak sesuai"]
-    },
-    {
-      id: 2,
-      pertanyaan: "Berapa lama waktu Anda mendapatkan pekerjaan pertama setelah lulus?",
-      tipe: "pilihan",
-      jawabanUser: "Kurang dari 3 bulan",
-      opsi: ["Kurang dari 3 bulan", "3 - 6 Bulan", "6 - 12 Bulan", "Lebih dari 1 tahun"]
-    },
-    {
-      id: 3,
-      pertanyaan: "Bagaimana cara Anda mendapatkan pekerjaan saat ini?",
-      tipe: "pilihan",
-      jawabanUser: "Job portal (Jobstreet, Indeed, dll)",
-      opsi: ["Melamar sendiri", "Rekomendasi dari teman/alumni", "Bursa Kerja Khusus (BKK) Sekolah", "Media Sosial", "Job portal (Jobstreet, Indeed, dll)", "Lainnya"]
-    },
-    {
-      id: 4,
-      pertanyaan: "Sebutkan nama perusahaan tempat Anda bekerja saat ini:",
-      tipe: "isian",
-      jawabanUser: "PT. Teknologi Nusantara Jaya",
-    },
-    {
-      id: 5,
-      pertanyaan: "Apakah perusahaan memberikan pelatihan/pengembangan skill?",
-      tipe: "pilihan",
-      jawabanUser: "Ya, rutin",
-      opsi: ["Ya, rutin", "Ya, tetapi jarang", "Tidak pernah"]
+  useEffect(() => {
+    if (!kuesionerId || !alumniId) {
+      setLoading(false);
+      return;
     }
-  ];
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await adminApi.getKuesionerJawabanDetail(kuesionerId, alumniId);
+        const data = res.data?.data || res.data;
+
+        // Extract profile and jawaban from response
+        if (data?.alumni || data?.profile) {
+          const profile = data.alumni || data.profile;
+          setAlumniProfile({
+            id: profile.id || alumniId,
+            nama: profile.nama || profile.name || "-",
+            nim: profile.nim || profile.nis || "-",
+            jurusan: profile.jurusan || profile.prodi || "-",
+            tahunLulus: profile.tahun_lulus || profile.tahun || "-",
+            tanggalIsi: profile.tanggal_mengisi || profile.created_at?.slice(0, 10) || "-",
+            status: profile.status || "Alumni",
+          });
+        } else {
+          setAlumniProfile({
+            id: alumniId,
+            nama: data?.nama || "-",
+            nim: data?.nim || "-",
+            jurusan: data?.jurusan || "-",
+            tahunLulus: data?.tahun_lulus || "-",
+            tanggalIsi: data?.created_at?.slice(0, 10) || "-",
+            status: data?.status || "Alumni",
+          });
+        }
+
+        const jawaban = data?.jawaban || data?.answers || (Array.isArray(data) ? data : []);
+        const mapped = jawaban.map((j) => ({
+          id: j.id,
+          pertanyaan: j.pertanyaan?.pertanyaan || j.pertanyaan_text || "-",
+          tipe: j.pertanyaan?.tipe || j.pertanyaan?.tipe_pertanyaan || j.tipe || "isian",
+          jawabanUser: j.jawaban || j.opsi_jawaban?.opsi || "-",
+          opsi: (j.pertanyaan?.opsi || []).map(o => o.opsi || o),
+        }));
+        setSurveyData(mapped);
+      } catch (e) {
+        alertError(e?.response?.data?.message || "Gagal memuat jawaban");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [kuesionerId, alumniId]);
 
   return (
     <div className="p-4 md:p-8 bg-[#F8FAFC] min-h-screen font-sans text-slate-700 pb-20">
@@ -88,6 +100,16 @@ export default function LihatJawabanDetail() {
       </div>
 
       {/* --- KONTEN UTAMA --- */}
+      {loading ? (
+        <div className="text-center py-20">
+          <Loader2 size={32} className="animate-spin text-primary mx-auto mb-3" />
+          <p className="text-sm text-slate-400">Memuat jawaban...</p>
+        </div>
+      ) : !kuesionerId ? (
+        <div className="text-center py-20">
+          <p className="text-sm text-slate-400">Kuesioner tidak diketahui. <button onClick={() => navigate(-1)} className="underline text-primary font-bold">Kembali</button></p>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* --- KOLOM KIRI: Profile Alumni --- */}
@@ -96,27 +118,27 @@ export default function LihatJawabanDetail() {
             {/* Header Dekoratif */}
             <div className="h-24 bg-gradient-to-r from-primary to-slate-700 relative">
               <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
-                <div className="w-20 h-20 rounded-full border-[3px] border-white shadow-md overflow-hidden bg-white">
-                  <img src={alumniProfile.avatar} alt="Profile" className="w-full h-full object-cover" />
+                <div className="w-20 h-20 rounded-full border-[3px] border-white shadow-md overflow-hidden bg-slate-200 flex items-center justify-center text-2xl font-black text-slate-400">
+                  {(alumniProfile?.nama || "?").charAt(0).toUpperCase()}
                 </div>
               </div>
             </div>
 
             {/* Konten Profil */}
             <div className="pt-12 pb-6 px-6 text-center">
-              <h2 className="text-lg font-black text-slate-800">{alumniProfile.nama}</h2>
-              <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-wide">NIM: {alumniProfile.nim}</p>
+              <h2 className="text-lg font-black text-slate-800">{alumniProfile?.nama}</h2>
+              <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-wide">NIM: {alumniProfile?.nim}</p>
               
               <div className="mt-4 flex justify-center">
                 <span className="px-3 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                  {alumniProfile.status}
+                  {alumniProfile?.status}
                 </span>
               </div>
 
               <div className="mt-6 space-y-4 text-left border-t border-slate-100 pt-6">
-                <InfoItem icon={<BookOpen size={16} />} label="Jurusan" value={alumniProfile.jurusan} />
-                <InfoItem icon={<Calendar size={16} />} label="Tahun Lulus" value={alumniProfile.tahunLulus} />
-                <InfoItem icon={<MapPin size={16} />} label="Tanggal Pengisian" value={alumniProfile.tanggalIsi} />
+                <InfoItem icon={<BookOpen size={16} />} label="Jurusan" value={alumniProfile?.jurusan} />
+                <InfoItem icon={<Calendar size={16} />} label="Tahun Lulus" value={alumniProfile?.tahunLulus} />
+                <InfoItem icon={<MapPin size={16} />} label="Tanggal Pengisian" value={alumniProfile?.tanggalIsi} />
               </div>
             </div>
           </div>
@@ -136,7 +158,12 @@ export default function LihatJawabanDetail() {
           </div>
 
           <div className="space-y-4">
-            {surveyData.map((item, index) => (
+            {surveyData.length === 0 ? (
+              <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-400 text-sm">
+                Tidak ada jawaban ditemukan.
+              </div>
+            ) : (
+            surveyData.map((item, index) => (
               <div key={item.id} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm transition-all hover:shadow-md">
                 
                 {/* Pertanyaan */}
@@ -151,7 +178,7 @@ export default function LihatJawabanDetail() {
 
                 {/* Jawaban */}
                 <div className="pl-11">
-                  {item.tipe === "pilihan" ? (
+                  {(item.tipe === "pilihan" || item.tipe === "Pilihan Tunggal" || item.tipe === "Pilihan Ganda") && item.opsi && item.opsi.length > 0 ? (
                     <div className="grid grid-cols-1 gap-2.5">
                       {item.opsi.map((opsi, idx) => {
                         const isSelected = opsi === item.jawabanUser;
@@ -164,7 +191,6 @@ export default function LihatJawabanDetail() {
                                 : "bg-white border-slate-100 text-slate-500"
                             }`}
                           >
-                            {/* Custom Radio Button */}
                             <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 transition-colors ${
                               isSelected ? "border-primary bg-primary" : "border-slate-300 bg-transparent"
                             }`}>
@@ -185,7 +211,6 @@ export default function LihatJawabanDetail() {
                       })}
                     </div>
                   ) : (
-                    // Tampilan Isian (Textarea look)
                     <div className="relative">
                       <div className="absolute top-3 left-3 text-slate-400">
                         <Quote size={16} className="rotate-180" />
@@ -198,7 +223,8 @@ export default function LihatJawabanDetail() {
                 </div>
 
               </div>
-            ))}
+            ))
+            )}
           </div>
 
           {/* Footer Action */}
@@ -213,6 +239,7 @@ export default function LihatJawabanDetail() {
 
         </div>
       </div>
+      )}
     </div>
   );
 }
