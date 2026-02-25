@@ -1,47 +1,57 @@
 import { Menu } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { matchPath, useLocation } from "react-router-dom";
 
 export default function Header({ toggleSidebar }) {
   const location = useLocation();
+
+  const routes = [
+    {
+      path: "/wb-admin",
+      title: "Beranda Admin",
+      text: "Selamat datang kembali, Admin",
+    },
+    {
+      path: "/wb-admin/manage-user",
+      title: "Manajemen Pengguna",
+      text: "Kelola pendaftaran alumni tertunda dan permintaan pembaruan profil",
+    },
+    {
+      path: "/wb-admin/jobs/job-detail/:id",
+      title: "Detail Pekerjaan",
+      text: "Detail informasi lowongan pekerjaan",
+    },
+    {
+      path: "/wb-admin/jobs",
+      title: "Manajemen Pekerjaan",
+      text: "Tinjau, setujui, dan kelola postingan lowongan kerja dari alumni",
+    },
+    {
+      path: "/wb-admin/status-karir",
+      title: "Manajemen Status",
+      text: "Mengelola Status karir alumni",
+    },
+    {
+      path: "/wb-admin/master",
+      title: "Manajemen Data Master",
+      text: "Kelola konfigurasi sistem, jurusan, jenis pekerjaan, dan laporan tracer study",
+    },
+    {
+      path: "/wb-admin/kuisoner/*",
+      title: "Manajemen Kuesioner",
+      text: "Kelola dan atur kuesioner untuk Studi Penelusuran Lulusan",
+    },
+    {
+      path: "/wb-admin/kuisoner/lihat-jawaban",
+      title: "Jawaban Alumni",
+      text: "Kelola dan tinjau jawaban individu",
+    },
+  ];
+
   const getTitle = () => {
-    switch (location.pathname) {
-      case "/wb-admin":
-        return {
-          title: "Beranda Admin",
-          text: "Selamat datang kembali, Admin",
-        };
-      case "/wb-admin/manage-user":
-        return {
-          title: "Manajemen Pengguna",
-          text: "Kelola pendaftaran alumni tertunda dan permintaan pembaruan profil",
-        };
-      case "/wb-admin/jobs":
-      case "/wb-admin/jobs/job-detail":
-        return {
-          title: "Manajemen Pekerjaan",
-          text: "Tinjau, setujui, dan kelola postingan lowongan kerja dari alumni",
-        };
-
-      case "/wb-admin/master":
-        return {
-          title: "Manajemen Data Master",
-          text: "Kelola konfigurasi sistem, jurusan, jenis pekerjaa, dan buat laporan studi penelusuran (tracer study).",
-        };
-
-      case "/wb-admin/kuisoner":
-      case "/wb-admin/kuisoner/tambah-pertanyaan":
-        return {
-          title: "Manajemen Kuesioner",
-          text: "Kelola dan atur kuesioner untuk Studi Penelusuran Lulusan (Tracer Study)",
-        };
-      case "/wb-admin/kuisoner/lihat-jawaban":
-        return {
-          title: "Jawaban Alumni",
-          text: "Kelola dan tinjau Jawaban Individu"
-        }
-      default:
-        return "Alumni Tracer";
-    }
+    const current = routes.find((route) =>
+      matchPath({ path: route.path, end: true }, location.pathname)
+    );
+    return current;
   };
 
   const contentTitle = getTitle();

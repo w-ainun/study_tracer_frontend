@@ -67,7 +67,7 @@ const JobCard = ({ job, onApprove, onReject, onDelete }) => {
 
   return (
     <div
-      onClick={() => navigate(`/wb-admin/job-detail/${job.id}`)}
+      onClick={() => navigate(`/wb-admin/jobs/job-detail/${job.id}`)}
       className={`bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 cursor-pointer group/card ${getBorderColor(displayStatus)}`}
     >
       <div className="flex flex-col sm:flex-row gap-5 flex-1 min-w-0 w-full">

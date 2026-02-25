@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import {
   LayoutDashboard, Users, Briefcase, Database,
-  FileText, LogOut, X
+  FileText, LogOut, X,
+  IdCardLanyard
 } from 'lucide-react';
 import Logo from '../../assets/icon.png';
-import { Link, useLocation, useNavigate  } from 'react-router-dom';
+import { Link, matchPath, useLocation, useNavigate  } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { alertConfirm } from '../../utilitis/alert';
 import { useEffect } from 'react';
@@ -20,6 +21,7 @@ export default function SideBar({ active, setActive }) {
     { name: 'Beranda', icon: <LayoutDashboard size={20} />, path: '/wb-admin' },
     { name: 'Manajemen Pengguna', icon: <Users size={20} />, path: '/wb-admin/manage-user' },
     { name: 'Manajemen Pekerjaan', icon: <Briefcase size={20} />, path: '/wb-admin/jobs' },
+    { name: 'Status Karier', icon: <IdCardLanyard size={20} />, path: '/wb-admin/status-karir' },
     { name: 'Data Master', icon: <Database size={20} />, path: '/wb-admin/master' },
     { name: 'Kuesioner', icon: <FileText size={20} />, path: '/wb-admin/kuisoner' },
   ];
@@ -34,33 +36,34 @@ export default function SideBar({ active, setActive }) {
       await logout();
       navigate("/login");
     } finally {
-      setIsLoggingOut(false); // Matikan loading jika gagal
+      setIsLoggingOut(false);
     }
   };
+
+  const routes = [
+    { path: "/wb-admin", title: "Beranda" },
+    { path: "/wb-admin/manage-user", title: "Manajemen Pengguna" },
+    { path: "/wb-admin/jobs/job-detail/:id", title: "Manajemen Pekerjaan" },
+    { path: "/wb-admin/jobs", title: "Manajemen Pekerjaan" },
+    { path: "/wb-admin/status-karir", title: "Status Karier" },
+    { path: "/wb-admin/master", title: "Data Master" },
+    { path: "/wb-admin/kuisoner", title: "Kuesioner" },
+    { path: "/wb-admin/kuisoner/tambah-pertanyaan", title: "Kuesioner" },
+    { path: "/wb-admin/kuisoner/lihat-jawaban", title: "Kuesioner" },
+  ];
+
 
   const getTitle = () => {
-    switch (location.pathname) {
-      case "/wb-admin":
-        return "Beranda"
-      case "/wb-admin/manage-user":
-        return "Manajemen Pengguna"
-      case "/wb-admin/jobs":
-        return "Manajemen Pekerjaan"
-      case "/wb-admin/master":
-        return "Data Master"
-      case "/wb-admin/kuisoner":
-      case "/wb-admin/kuisoner/tambah-pertanyaan":
-      case "/wb-admin/kuisoner/lihat-jawaban":
-        return "Kuesioner"
-      default:
-        return "Alumni Tracer";
-    }
+    const current = routes.find((route) =>
+      matchPath({ path: route.path, end: true }, location.pathname)
+    );
+
+    return current?.title || "Dashboard";
   };
-
-
   useEffect(() => {
     setActiveMenu(getTitle());
   }, [location.pathname]);
+
   return (
     <>
       {active && (
@@ -72,7 +75,7 @@ export default function SideBar({ active, setActive }) {
 
       {/* Sidebar Container */}
       <div className={`
-        fixed lg:relative z-70
+        fixed lg:relative z-10
         w-72 md:w-65
         h-dvh
         bg-white border-r border-fourth
