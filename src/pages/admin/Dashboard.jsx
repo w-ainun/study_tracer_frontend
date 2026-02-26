@@ -129,6 +129,15 @@ export default function Dashboard() {
     return dist;
   }, [dashData]);
 
+  function hitungPersen(data) {
+    const bagian = data[0]?.total?? 0
+    const total = data.reduce((sum, item) => sum + item.total, 0);
+    console.log(total)
+    return Math.round((bagian / total) * 100);
+  }
+
+  const presentaseKerja = hitungPersen(statusDistribution)
+
   const dynamicStats = [
     {
       label: "Total Pengguna Aktif",
@@ -138,8 +147,8 @@ export default function Dashboard() {
       badgeColor: "bg-green-100 text-green-600",
     },
     {
-      label: "Status Pekerja",
-      value: dashData?.percent_bekerja != null ? `${dashData.percent_bekerja}%` : "-",
+      label: "Status Bekerja",
+      value: `${presentaseKerja}%`,
       icon: ShieldCheck,
       badge: "Optimal",
       badgeColor: "bg-fourth text-secondary",
@@ -222,7 +231,7 @@ export default function Dashboard() {
                 </div>
                 <button
                   onClick={() => navigate(item.link)}
-                  className="w-full sm:w-auto px-5 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:opacity-90 transition-all"
+                  className="cursor-pointer w-full sm:w-auto px-5 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:opacity-90 transition-all"
                 >
                   Tinjau
                 </button>

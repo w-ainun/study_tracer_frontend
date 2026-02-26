@@ -126,7 +126,7 @@ export default function Login() {
                 <div className="relative w-full">
                   <input
                     type={showPassword ? "text" : "password"} // Logic perubahan type
-                    placeholder="••••••••"
+                    placeholder="Masukkan Password Anda"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all pr-12" // Tambah padding kanan (pr-12) agar teks tidak tertutup icon

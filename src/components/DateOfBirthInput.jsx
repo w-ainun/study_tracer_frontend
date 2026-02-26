@@ -1,72 +1,59 @@
-import React, { useRef } from 'react';
-import { Calendar } from 'lucide-react';
+import React from "react";
+import DatePicker from "react-datepicker";
 
-export default function DateOfBirthInput({ isRequired = false, onChange }) {
-  const dateInputRef = useRef(null);
+// Import CSS bawaan library
+import "react-datepicker/dist/react-datepicker.css";
 
-  // Fungsi untuk memicu kalender muncul saat area input diklik
-  const handleDivClick = () => {
-    if (dateInputRef.current) {
-      // .showPicker() adalah cara standar modern untuk memicu kalender muncul
-      try {
-        dateInputRef.current.showPicker();
-      } catch (error) {
-        // Fallback jika browser sangat lama: fokus ke input
-        dateInputRef.current.focus();
-      }
-    }
-  };
+export default function DateOfBirthInput({ onChange, isRequired, value }) {
+  // Konversi string value (YYYY-MM-DD) ke Object Date untuk library
+  const selectedDate = value ? new Date(value) : null;
 
   return (
-    <div className="space-y-1 w-full">
-      <label className="text-[11px] font-bold text-secondary uppercase tracking-wider">
+    <div className="space-y-1">
+      <label className="text-[11px] font-bold text-secondary uppercase block">
         Tanggal Lahir {isRequired && <span className="text-red-500">*</span>}
       </label>
-
-      {/* Container utama diberi onClick agar user bisa klik dimana saja */}
-      <div
-        onClick={handleDivClick}
-        className="relative mt-2 flex items-center bg-white border-2 border-fourth rounded-xl cursor-pointer
-                   hover:border-primary/50 transition-all duration-300 group focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10"
-      >
-        {/* Ikon Section */}
-        <div className="pl-3 flex items-center pointer-events-none border-r border-fourth pr-2">
-          <Calendar
-            size={18}
-            className="text-third group-focus-within:text-primary transition-colors"
-          />
-        </div>
-
-        {/* Input Date */}
-        <input
-          ref={dateInputRef}
-          type="date"
-          required={isRequired}
-          onChange={(e) => onChange && onChange(e.target.value)}
-          className="w-full p-3 bg-transparent text-sm outline-none text-secondary cursor-pointer
-                     appearance-none placeholder-transparent"
-          style={{
-            // Menghilangkan ikon kalender bawaan browser agar tidak double dengan ikon Lucide kita
-            WebkitAppearance: 'none'
+      
+      <div className="relative custom-datepicker">
+        <DatePicker
+          selected={selectedDate}
+          onChange={(date) => {
+            // Simpan kembali dalam format YYYY-MM-DD agar sinkron dengan database
+            if (date) {
+              const formattedDate = date.toISOString().split("T")[0];
+              onChange(formattedDate);
+            } else {
+              onChange("");
+            }
           }}
+          // Fitur navigasi cepat:
+          showMonthDropdown
+          showYearDropdown
+          dropdownMode="select" // Menggunakan dropdown agar tidak perlu scroll panjang
+          yearDropdownItemNumber={100} // Menampilkan rentang 100 tahun ke belakang
+          scrollableYearDropdown={true}
+          
+          placeholderText="Pilih tanggal"
+          dateFormat="dd/MM/yyyy"
+          className="w-full p-2.5 bg-white border border-fourth rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary text-slate-700"
         />
-
-        {/* CSS tambahan untuk merapikan tampilan input date di beberapa browser */}
-        <style dangerouslySetInnerHTML={{ __html: `
-          input[type="date"]::-webkit-calendar-picker-indicator {
-            background: transparent;
-            bottom: 0;
-            color: transparent;
-            cursor: pointer;
-            height: auto;
-            left: 0;
-            position: absolute;
-            right: 0;
-            top: 0;
-            width: auto;
-          }
-        `}} />
       </div>
+
+      {/* Tambahkan sedikit CSS Global untuk merapikan ukuran dropdown jika perlu */}
+      <style jsx global>{`
+        .react-datepicker-wrapper {
+          display: block;
+          width: 100%;
+        }
+        .react-datepicker__header {
+          background-color: white;
+          border-bottom: 1px solid #e2e8f0;
+        }
+        .react-datepicker__day--selected {
+          background-color: #3b82f6 !important; /* Sesuaikan dengan warna primary kamu */
+          border-radius: 0.75rem;
+        }
+      `}</style>
     </div>
   );
 }

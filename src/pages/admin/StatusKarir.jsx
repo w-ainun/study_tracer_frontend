@@ -16,6 +16,7 @@ import {
   ChevronDown
 } from "lucide-react";
 import { alertSuccess, alertError, alertConfirm } from "../../utilitis/alert";
+
 import { adminApi } from "../../api/admin";
 
 // --- KOMPONEN CUSTOM: MULTI-SELECT DROPDOWN ---
@@ -186,7 +187,7 @@ const ManagedTable = ({
   // Logika untuk menentukan tinggi tabel
   // Jika sedang Edit atau Tambah, beri min-height agar dropdown muat
   // Jika tidak, biarkan auto (pendek sesuai konten)
-  const tableContainerClass = (isAdding || editId) 
+  const tableContainerClass = (isAdding || editId)
     ? "p-4 overflow-x-auto min-h-[250px] transition-all duration-300" // Mode Edit: Tinggi
     : "p-4 overflow-x-auto transition-all duration-300"; // Mode Lihat: Pendek (Auto)
 
@@ -233,7 +234,6 @@ const ManagedTable = ({
         <table className="w-full text-left">
           <thead>
             <tr className="text-gray-500 font-bold text-[11px] uppercase tracking-widest border-b-2 border-gray-200 bg-gray-50">
-              <th className="px-3 py-3 w-16">ID</th>
               <th className="px-3 py-3 w-1/3">Nama</th>
               {withJurusan && <th className="px-3 py-3">Jurusan Tersedia</th>}
               {!readOnly && <th className="px-3 py-3 text-right w-24">Aksi</th>}
@@ -243,7 +243,7 @@ const ManagedTable = ({
             {/* Input Row */}
             {isAdding && !readOnly && (
               <tr className="bg-blue-50/50 animate-in fade-in duration-300 align-top">
-                <td className="py-3 px-3 text-xs text-gray-400 italic">Auto</td>
+
                 <td className="py-3 px-3">
                   <input
                     type="text"
@@ -284,7 +284,6 @@ const ManagedTable = ({
             ) : (
               filteredData.map((item) => (
                 <tr key={item.id} className="group hover:bg-blue-50/30 transition-colors align-top">
-                  <td className="py-3 px-3 font-bold text-primary text-xs">{item.id}</td>
                   <td className="py-3 px-3">
                     {editId === item.id ? (
                       <input
@@ -494,7 +493,7 @@ export default function StatusKarir() {
     <div className="space-y-6">
       <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6">
         <div className="lg:col-span-8 space-y-6 order-last lg:order-first">
-          
+
           <ManagedTable
             title="Data Universitas"
             icon={School}
@@ -558,18 +557,19 @@ export default function StatusKarir() {
             </div>
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Jenis Data</label>
-                <select value={selectedReport} onChange={(e) => setSelectedReport(e.target.value)} className="cursor-pointer w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-gray-50 text-slate-700 font-medium">
-                  <option>Data Universitas</option>
-                  <option>Data Program Studi</option>
-                  <option>Bidang Wirausaha</option>
-                  <option>Posisi Pekerjaan</option>
-                </select>
+                <SmoothDropdown
+                  label="Jenis Data"
+                  options={["Data Universitas", "Data Program Studi", "Bidang Wirausaha", "Posisi Pekerjaan"]}
+                  placeholder="Pilih data"
+                  isRequired={true}
+                  />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Format Laporan</label>
-                <div className="flex gap-2">
-                  <div className="flex-1 py-2.5 rounded-lg text-xs font-bold bg-primary text-white shadow-md text-center">CSV</div>
+                <div className="flex gap-2 mt-2">
+                  {["CSV", "PDF"].map(fmt => (
+                    <button key={fmt} onClick={() => setSelectedFormat(fmt)} className={`cursor-pointer flex-1 py-2.5 rounded-lg text-xs font-bold transition-all hover:opacity-90 ${selectedFormat === fmt ? "bg-primary text-white shadow-md" : "bg-gray-50 text-gray-400 border border-gray-200"}`}>{fmt}</button>
+                  ))}
                 </div>
               </div>
               <button onClick={handleBuatLaporan} disabled={exportingReport} className="cursor-pointer w-full py-2.5 bg-primary text-white rounded-lg font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-md mt-4 disabled:opacity-50">

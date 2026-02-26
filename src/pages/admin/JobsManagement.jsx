@@ -9,23 +9,66 @@ import {
   Pencil,
   Trash2,
   RotateCcw,
-  Briefcase,
   MapPin,
   Layers,
   ChartNoAxesCombined,
   Hourglass,
   CalendarClock,
-  View,
-  Loader2
 } from "lucide-react";
 
 import banner from "../../assets/banner.jfif";
-// import Header from "../../components/admin/Header";
-// import SideBar from "../../components/admin/SideBar";
-import TambahLowongan from "./TambahLowongan";
 import { adminApi } from "../../api/admin";
 import { STORAGE_BASE_URL } from "../../api/axios";
 import { useAuth } from "../../context/AuthContext";
+import TambahLowongan from "./TambahLowongan";
+
+// --- Skeleton Components ---
+const JobSkeleton = () => (
+  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-5 animate-pulse">
+    <div className="flex flex-col sm:flex-row gap-5 flex-1 w-full">
+      <div className="w-full sm:w-24 h-24 rounded-xl bg-gray-200 flex-shrink-0"></div>
+      <div className="space-y-3 flex-1">
+        <div className="flex gap-2">
+          <div className="h-5 w-24 bg-gray-200 rounded-md"></div>
+          <div className="h-5 w-32 bg-gray-100 rounded-md"></div>
+        </div>
+        <div className="space-y-2">
+          <div className="h-6 w-3/4 bg-gray-200 rounded-md"></div>
+          <div className="h-4 w-1/2 bg-gray-100 rounded-md"></div>
+        </div>
+        <div className="flex gap-4">
+          <div className="h-3 w-20 bg-gray-100 rounded"></div>
+          <div className="h-3 w-20 bg-gray-100 rounded"></div>
+        </div>
+      </div>
+    </div>
+    <div className="h-10 w-24 bg-gray-50 rounded-xl hidden md:block"></div>
+  </div>
+);
+
+const SidebarSkeleton = () => (
+  <div className="space-y-6 animate-pulse">
+    <div className="bg-white p-5 rounded-2xl border border-gray-100">
+      <div className="h-4 w-24 bg-gray-200 rounded mb-4"></div>
+      <div className="flex flex-wrap gap-2">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-8 w-20 bg-gray-100 rounded-lg"></div>
+        ))}
+      </div>
+    </div>
+    <div className="bg-gray-200 p-6 rounded-2xl h-52 shadow-sm">
+      <div className="h-6 w-32 bg-gray-300 rounded mb-6"></div>
+      <div className="space-y-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="flex justify-between border-b border-white/20 pb-2">
+            <div className="h-3 w-24 bg-gray-300 rounded"></div>
+            <div className="h-3 w-8 bg-gray-300 rounded"></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
 
 // --- Helper & JobCard Component ---
 const getDisplayStatus = (job) => {
@@ -71,7 +114,7 @@ const JobCard = ({ job, onApprove, onReject, onDelete }) => {
       className={`bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 cursor-pointer group/card ${getBorderColor(displayStatus)}`}
     >
       <div className="flex flex-col sm:flex-row gap-5 flex-1 min-w-0 w-full">
-        <div className="w-full sm:w-24 h-24 sm:h-24 rounded-xl overflow-hidden flex-shrink-0 bg-gray-50 border border-gray-100 relative group-hover/card:shadow-inner transition-all">
+        <div className="w-full sm:w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 bg-gray-50 border border-gray-100 relative group-hover/card:shadow-inner transition-all">
           <img
             src={fotoUrl}
             alt={job.perusahaan?.nama || job.judul}
@@ -145,7 +188,6 @@ const JobCard = ({ job, onApprove, onReject, onDelete }) => {
 
 // --- Main Component ---
 export default function ManajemenPekerjaan() {
-  const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState("Semua");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [jobs, setJobs] = useState([]);
@@ -155,13 +197,12 @@ export default function ManajemenPekerjaan() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // 1. UPDATE: Menambahkan "Ditolak" ke dalam Filter Map
   const tabFilterMap = {
     "Semua": {},
     "Menunggu": { approval_status: "pending" },
     "Aktif": { status: "published", approval_status: "approved" },
     "Berakhir": { status: "closed" },
-    "Ditolak": { approval_status: "rejected" } // Filter baru
+    "Ditolak": { approval_status: "rejected" }
   };
 
   const fetchJobs = useCallback(async () => {
@@ -175,7 +216,7 @@ export default function ManajemenPekerjaan() {
     } catch {
       setJobs([]);
     } finally {
-      setLoading(false);
+      setTimeout(() => setLoading(false), 500); // Sedikit delay agar transisi skeleton halus
     }
   }, [activeTab, searchQuery]);
 
@@ -218,61 +259,36 @@ export default function ManajemenPekerjaan() {
     <div className="min-h-screen bg-[#F8FAFC]">
       <div className="space-y-6">
 
-        {/* TOMBOL MOBILE (Hanya muncul di Layar Kecil) */}
+        {/* TOMBOL MOBILE */}
         <div className="grid grid-cols-2 gap-3 lg:hidden">
-            <button
-                onClick={handleExportCSV}
-                className="flex items-center justify-center gap-2 p-3 bg-white border border-gray-200 text-primary font-bold rounded-xl hover:bg-gray-50 hover:border-primary active:scale-95 transition-all text-xs shadow-sm"
-            >
-                <Download size={16} />
-                <span>Eksport CSV</span>
+            <button onClick={handleExportCSV} className="flex items-center justify-center gap-2 p-3 bg-white border border-gray-200 text-primary font-bold rounded-xl active:scale-95 transition-all text-xs shadow-sm">
+                <Download size={16} /> <span>Eksport CSV</span>
             </button>
-            <button
-                onClick={() => setIsModalOpen(true)}
-                className="flex items-center justify-center gap-2 p-3 bg-primary text-white font-bold rounded-xl hover:opacity-90 active:scale-95 transition-all text-xs shadow-md shadow-primary/20"
-            >
-                <Plus size={16} />
-                <span>Buat Lowongan</span>
+            <button onClick={() => setIsModalOpen(true)} className="flex items-center justify-center gap-2 p-3 bg-primary text-white font-bold rounded-xl active:scale-95 transition-all text-xs shadow-md shadow-primary/20">
+                <Plus size={16} /> <span>Buat Lowongan</span>
             </button>
         </div>
 
-        {/* MAIN LAYOUT */}
         <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6">
-
-          {/* Main Content (List Card) */}
+          {/* Main Content */}
           <div className="lg:col-span-8 space-y-4">
-            {/* Filter Bar */}
             <div className="flex flex-col sm:flex-row items-center gap-3">
-              {/* 2. UPDATE: Menambahkan "Ditolak" ke Tampilan Tab dan menambahkan overflow-x-auto */}
               <div className="flex gap-2 bg-gray-100 p-1 rounded-lg w-full sm:w-auto overflow-x-auto no-scrollbar">
                 {["Semua", "Menunggu", "Aktif", "Berakhir", "Ditolak"].map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`cursor-pointer px-3 py-2 rounded-md text-xs font-bold transition-all whitespace-nowrap ${
-                      activeTab === tab ? "bg-primary text-white shadow-md scale-105" : "text-gray-500 hover:bg-gray-200"
-                    }`}
-                  >
+                  <button key={tab} onClick={() => setActiveTab(tab)} className={`cursor-pointer px-3 py-2 rounded-md text-xs font-bold transition-all whitespace-nowrap ${activeTab === tab ? "bg-primary text-white shadow-md scale-105" : "text-gray-500 hover:bg-gray-200"}`}>
                     {tab}
                   </button>
                 ))}
               </div>
               <div className="relative flex-1 group w-full">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-primary transition-colors" size={16} />
-                <input
-                  type="text"
-                  placeholder="Cari Lowongan..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-8 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-sm"
-                />
+                <input type="text" placeholder="Cari Lowongan..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-8 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-sm" />
               </div>
             </div>
 
-            {/* List */}
             <div className="space-y-3">
               {loading ? (
-                <div className="flex justify-center items-center py-12"><Loader2 className="animate-spin text-gray-400" size={32} /></div>
+                [...Array(5)].map((_, i) => <JobSkeleton key={i} />)
               ) : filteredJobs.length > 0 ? (
                 filteredJobs.map((job) => (
                   <JobCard key={job.id} job={job} onApprove={handleApprove} onReject={handleReject} onDelete={handleDelete} />
@@ -287,64 +303,58 @@ export default function ManajemenPekerjaan() {
 
           {/* Sidebar */}
           <div className="lg:col-span-4 space-y-6">
-
-            {/* TOMBOL DESKTOP (Hanya muncul di Layar Besar/Sidebar) */}
             <div className="hidden lg:grid grid-cols-2 gap-3">
-                <button
-                    onClick={handleExportCSV}
-                    className="flex items-center justify-center gap-2 p-3 bg-white border border-gray-200 text-primary font-bold rounded-xl hover:bg-gray-50 hover:border-primary active:scale-95 transition-all text-xs shadow-sm group"
-                >
+                <button onClick={handleExportCSV} className="flex items-center justify-center gap-2 p-3 bg-white border border-gray-200 text-primary font-bold rounded-xl hover:bg-gray-50 active:scale-95 transition-all text-xs shadow-sm group">
                     <Download size={16} className="group-hover:scale-110 transition-transform"/>
                     <span>Eksport CSV</span>
                 </button>
-                <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="flex items-center justify-center gap-2 p-3 bg-primary text-white font-bold rounded-xl hover:opacity-90 active:scale-95 transition-all text-xs shadow-md shadow-primary/20 group"
-                >
+                <button onClick={() => setIsModalOpen(true)} className="flex items-center justify-center gap-2 p-3 bg-primary text-white font-bold rounded-xl hover:opacity-90 active:scale-95 transition-all text-xs shadow-md shadow-primary/20 group">
                     <Plus size={16} className="group-hover:rotate-90 transition-transform"/>
                     <span>Buat Lowongan</span>
                 </button>
             </div>
 
-            {/* Kategori */}
-            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-              <div className="flex justify-between items-center mb-4 gap-2">
-                <h2 className="font-black text-primary text-sm uppercase tracking-wider">Kategori</h2>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {categories.length > 0 ? (
-                  <>
-                    <span onClick={() => setSelectedCategory(null)} className={`flex items-center gap-1 px-3 py-1.5 text-[11px] font-bold rounded-lg border cursor-pointer transition-all ${!selectedCategory ? 'bg-primary text-white border-primary shadow-md' : 'bg-gray-50 text-gray-500 border-gray-100 hover:border-gray-300 hover:bg-white'}`}>Semua</span>
-                    {categories.map((cat) => (
-                      <span key={cat.name} onClick={() => setSelectedCategory(selectedCategory === cat.name ? null : cat.name)} className={`flex items-center gap-1 px-3 py-1.5 text-[11px] font-bold rounded-lg border cursor-pointer transition-all ${selectedCategory === cat.name ? 'bg-primary text-white border-primary shadow-md' : 'bg-gray-50 text-gray-500 border-gray-100 hover:border-gray-300 hover:bg-white'}`}>
-                        {cat.name} <span className={`text-[9px] ml-1 opacity-70`}>{cat.count}</span>
-                      </span>
-                    ))}
-                  </>
-                ) : <span className="text-gray-400 text-xs italic">Belum ada kategori tersedia</span>}
-              </div>
-            </div>
-
-            {/* Ringkasan */}
-            <div className="bg-primary p-6 rounded-2xl text-white shadow-lg shadow-primary/20 relative overflow-hidden">
-              <div className="relative z-10">
-                  <h2 className="font-bold text-lg mb-4 flex items-center gap-2"><ChartNoAxesCombined size={20} className="text-white/80"/> Ringkasan</h2>
-                  <div className="space-y-3">
-                    {[
-                      { label: "Pekerjaan Aktif", value: lowonganStats?.active ?? "-", icon: <Check size={14} /> },
-                      { label: "Menunggu Tinjauan", value: lowonganStats?.pending ?? "-", color: "text-orange-300", icon: <Hourglass size={14}/> },
-                      { label: "Baru Minggu Ini", value: lowonganStats?.new_this_week ?? "-", icon: <CalendarClock size={14}/> },
-                      { label: "Total Lowongan", value: lowonganStats?.total ?? "-", icon: <Layers size={14}/>},
-                    ].map((item, i) => (
-                      <div key={i} className="flex justify-between items-center py-2 border-b border-white/10 last:border-0 group">
-                        <span className="text-xs font-medium text-white/70 flex items-center gap-2 group-hover:text-white transition-colors">{item.icon} {item.label}</span>
-                        <span className={`text-sm font-black ${item.color || "text-white"}`}>{item.value}</span>
-                      </div>
-                    ))}
+            {loading && !lowonganStats ? (
+              <SidebarSkeleton />
+            ) : (
+              <>
+                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                  <h2 className="font-black text-primary text-sm uppercase tracking-wider mb-4">Kategori</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {categories.length > 0 ? (
+                      <>
+                        <span onClick={() => setSelectedCategory(null)} className={`flex items-center gap-1 px-3 py-1.5 text-[11px] font-bold rounded-lg border cursor-pointer transition-all ${!selectedCategory ? 'bg-primary text-white border-primary shadow-md' : 'bg-gray-50 text-gray-500 border-gray-100 hover:border-gray-300'}`}>Semua</span>
+                        {categories.map((cat) => (
+                          <span key={cat.name} onClick={() => setSelectedCategory(selectedCategory === cat.name ? null : cat.name)} className={`flex items-center gap-1 px-3 py-1.5 text-[11px] font-bold rounded-lg border cursor-pointer transition-all ${selectedCategory === cat.name ? 'bg-primary text-white border-primary shadow-md' : 'bg-gray-50 text-gray-500 border-gray-100 hover:border-gray-300'}`}>
+                            {cat.name} <span className="text-[9px] ml-1 opacity-70">{cat.count}</span>
+                          </span>
+                        ))}
+                      </>
+                    ) : <span className="text-gray-400 text-xs italic">Belum ada kategori</span>}
                   </div>
-              </div>
-              <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
-            </div>
+                </div>
+
+                <div className="bg-primary p-6 rounded-2xl text-white shadow-lg shadow-primary/20 relative overflow-hidden">
+                  <div className="relative z-10">
+                      <h2 className="font-bold text-lg mb-4 flex items-center gap-2"><ChartNoAxesCombined size={20} className="text-white/80"/> Ringkasan</h2>
+                      <div className="space-y-3">
+                        {[
+                          { label: "Pekerjaan Aktif", value: lowonganStats?.active ?? "-", icon: <Check size={14} /> },
+                          { label: "Menunggu Tinjauan", value: lowonganStats?.pending ?? "-", color: "text-orange-300", icon: <Hourglass size={14}/> },
+                          { label: "Baru Minggu Ini", value: lowonganStats?.new_this_week ?? "-", icon: <CalendarClock size={14}/> },
+                          { label: "Total Lowongan", value: lowonganStats?.total ?? "-", icon: <Layers size={14}/>},
+                        ].map((item, i) => (
+                          <div key={i} className="flex justify-between items-center py-2 border-b border-white/10 last:border-0">
+                            <span className="text-xs font-medium text-white/70 flex items-center gap-2">{item.icon} {item.label}</span>
+                            <span className={`text-sm font-black ${item.color || "text-white"}`}>{item.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                  </div>
+                  <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

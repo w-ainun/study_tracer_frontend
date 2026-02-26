@@ -8,17 +8,26 @@ import UniversitySelector from '../../components/UniversitasSelector';
 import { masterDataApi } from '../../api/masterData';
 
 export default function Step3Status({ onBack, formData, updateFormData, onSubmit, loading }) {
-  const [selectedStatus, setSelectedStatus] = useState('Bekerja');
+  // 1. LOGIKA STATUS AWAL: Cek formData untuk menentukan status yang aktif
+  const getInitialStatus = () => {
+    if (formData.pekerjaan && Object.keys(formData.pekerjaan).length > 0) return 'Bekerja';
+    if (formData.universitas && Object.keys(formData.universitas).length > 0) return 'Kuliah';
+    if (formData.wirausaha && Object.keys(formData.wirausaha).length > 0) return 'Wirausaha';
+    return 'Bekerja'; // Default
+  };
+
+  const [selectedStatus, setSelectedStatus] = useState(getInitialStatus);
   const [statusList, setStatusList] = useState([]);
   const [bidangUsahaList, setBidangUsahaList] = useState([]);
   const [bidangUsahaMap, setBidangUsahaMap] = useState({});
 
-  // Local state for career sub-forms
-  const [pekerjaan, setPekerjaan] = useState({ posisi: '', nama_perusahaan: '', id_kota: '', jalan: '' });
-  const [universitas, setUniversitas] = useState({ nama_universitas: '', id_jurusanKuliah: '', jalur_masuk: '', jenjang: '' });
-  const [wirausaha, setWirausaha] = useState({ id_bidang: '', nama_usaha: '' });
-  const [tahunMulai, setTahunMulai] = useState('');
-  const [tahunSelesai, setTahunSelesai] = useState('');
+  // 2. INISIALISASI STATE DENGAN FORMDATA (Agar data tersimpan)
+  const [pekerjaan, setPekerjaan] = useState(formData.pekerjaan || { posisi: '', nama_perusahaan: '', id_kota: '', jalan: '' });
+  const [universitas, setUniversitas] = useState(formData.universitas || { nama_universitas: '', id_jurusanKuliah: '', jalur_masuk: '', jenjang: '' });
+  const [wirausaha, setWirausaha] = useState(formData.wirausaha || { id_bidang: '', nama_usaha: '' });
+  
+  const [tahunMulai, setTahunMulai] = useState(formData.tahun_mulai || '');
+  const [tahunSelesai, setTahunSelesai] = useState(formData.tahun_selesai || '');
 
   // Fetch status and bidang usaha from API
   useEffect(() => {
@@ -43,30 +52,34 @@ export default function Step3Status({ onBack, formData, updateFormData, onSubmit
     { id: 'Mencari Kerja', label: 'Mencari Kerja', sub: '(Unemployed)', icon: Search },
   ];
 
-  const handleFinish = () => {
-    // Find the matching status id from API data
+  // Helper untuk mendapatkan ID Status dari String Label
+  const getStatusId = () => {
     const matched = statusList.find((s) => (s.nama_status || s.nama) === selectedStatus);
-    const id_status = matched?.id || '';
+    return matched?.id || '';
+  };
 
+  // 3. FUNGSI SAVE TEMPORARY (Untuk handleBack & handleFinish)
+  const saveCurrentState = () => {
     const updates = {
-      id_status,
+      id_status: getStatusId(), // Simpan ID Status
       tahun_mulai: tahunMulai,
       tahun_selesai: tahunSelesai,
-      pekerjaan: null,
-      universitas: null,
-      wirausaha: null,
+      // Reset yang lain menjadi null agar data bersih sesuai status yang dipilih
+      pekerjaan: selectedStatus === 'Bekerja' ? pekerjaan : null,
+      universitas: selectedStatus === 'Kuliah' ? universitas : null,
+      wirausaha: selectedStatus === 'Wirausaha' ? wirausaha : null,
     };
-
-    if (selectedStatus === 'Bekerja') {
-      updates.pekerjaan = pekerjaan;
-    } else if (selectedStatus === 'Kuliah') {
-      updates.universitas = universitas;
-    } else if (selectedStatus === 'Wirausaha') {
-      updates.wirausaha = wirausaha;
-    }
-
     updateFormData(updates);
-    // Use setTimeout to allow state to propagate before submit
+  };
+
+  // Handler saat tombol Kembali ditekan
+  const handleBackCustom = () => {
+    saveCurrentState(); // Simpan dulu
+    onBack(); // Baru pindah halaman
+  };
+
+  const handleFinish = () => {
+    saveCurrentState(); // Simpan data ke state utama
     setTimeout(() => onSubmit(), 0);
   };
 
@@ -111,6 +124,7 @@ export default function Step3Status({ onBack, formData, updateFormData, onSubmit
             <div className="space-y-1">
               <InputDropdownEdit
                 label="Pekerjaan Sekarang"
+                value={pekerjaan.posisi} // PASS VALUE
                 options={["UI/UX", "DevOps", "Cloud Engginering", "Karyawan"]}
                 placeholder="Masukkan nama pekerjaan anda"
                 isRequired={true}
@@ -122,6 +136,7 @@ export default function Step3Status({ onBack, formData, updateFormData, onSubmit
             <div className="space-y-1">
               <InputDropdownEdit
                 label="Nama Perusahaan"
+                value={pekerjaan.nama_perusahaan} // PASS VALUE
                 options={["Hummatech", "Pertamina", "Telkom", "PT. Ardhi Jaya"]}
                 placeholder="Masukkan nama perusahaan "
                 isRequired={true}
@@ -131,21 +146,31 @@ export default function Step3Status({ onBack, formData, updateFormData, onSubmit
 
             {/* Tahun Mulai*/}
             <div className="space-y-1">
-              <YearsInput label={"Tahun Masuk"} isRequired={ true } onSelect={(val) => setTahunMulai(val)} />
+              <YearsInput 
+                label={"Tahun Masuk"} 
+                isRequired={true} 
+                value={tahunMulai} // PASS VALUE
+                onSelect={(val) => setTahunMulai(val)} 
+              />
             </div>
 
             {/* Tahun Selesai */}
             <div className="space-y-1 ">
-              <YearsInput label={"Tahun Selesai"} text='(opsional jika sudah selesai)' onSelect={(val) => setTahunSelesai(val)} />
+              <YearsInput 
+                label={"Tahun Selesai"} 
+                text='(opsional jika sudah selesai)' 
+                value={tahunSelesai} // PASS VALUE
+                onSelect={(val) => setTahunSelesai(val)} 
+              />
             </div>
 
-            {/* Nama Provinsi */}
+            {/* Nama Provinsi & Kota */}
             <div className='space-y-1 md:col-span-2'>
-              <LocationSelector onCitySelect={(cityId) => setPekerjaan((p) => ({ ...p, id_kota: cityId }))} />
+              <LocationSelector 
+                // Pastikan LocationSelector mendukung prop initialCityId/value jika ingin persist lokasi juga
+                onCitySelect={(cityId) => setPekerjaan((p) => ({ ...p, id_kota: cityId }))} 
+              />
             </div>
-
-            {/* Nama Kota*/}
-            <div className='space-y-1'></div>
           </div>
         )}
 
@@ -155,6 +180,8 @@ export default function Step3Status({ onBack, formData, updateFormData, onSubmit
             {/* Univ dan jurusan*/}
             <div className="space-y-1 md:col-span-2">
               <UniversitySelector
+                // Pastikan UniversitySelector mendukung prop value untuk nama univ & jurusan
+                value={universitas} 
                 onUnivSelect={(val) => setUniversitas((u) => ({ ...u, nama_universitas: val }))}
                 onJurusanSelect={(val) => setUniversitas((u) => ({ ...u, id_jurusanKuliah: val }))}
               />
@@ -164,6 +191,7 @@ export default function Step3Status({ onBack, formData, updateFormData, onSubmit
             <div className="space-y-1">
               <SmoothDropdown
                 label="Jalur Masuk Kuliah"
+                value={universitas.jalur_masuk} // PASS VALUE
                 options={["SNBP", "SNBT", "Mandiri", "Beasiswa", "lainnya"]}
                 placeholder="Masukan jalur masuk kuliah anda"
                 isRequired={true}
@@ -175,6 +203,7 @@ export default function Step3Status({ onBack, formData, updateFormData, onSubmit
             <div className="space-y-1">
               <SmoothDropdown
                 label="Jenjang Kuliah"
+                value={universitas.jenjang} // PASS VALUE
                 options={["D3", "D4", "S1", "S2", "S3"]}
                 placeholder="Masukan jenjang kuliah anda"
                 isRequired={true}
@@ -184,12 +213,22 @@ export default function Step3Status({ onBack, formData, updateFormData, onSubmit
 
             {/* Tahun Mulai*/}
             <div className="space-y-1">
-              <YearsInput label={"Tahun Masuk"} isRequired={ true } onSelect={(val) => setTahunMulai(val)} />
+              <YearsInput 
+                label={"Tahun Masuk"} 
+                isRequired={true} 
+                value={tahunMulai} // PASS VALUE
+                onSelect={(val) => setTahunMulai(val)} 
+              />
             </div>
 
             {/* Tahun Selesai */}
             <div className="space-y-1 ">
-              <YearsInput label={"Tahun Lulus"} text='(opsional jika sudah lulus)' onSelect={(val) => setTahunSelesai(val)} />
+              <YearsInput 
+                label={"Tahun Lulus"} 
+                text='(opsional jika sudah lulus)' 
+                value={tahunSelesai} // PASS VALUE
+                onSelect={(val) => setTahunSelesai(val)} 
+              />
             </div>
           </div>
         )}
@@ -205,7 +244,7 @@ export default function Step3Status({ onBack, formData, updateFormData, onSubmit
               <input
                 type="text"
                 placeholder="Masukan nama usaha anda"
-                value={wirausaha.nama_usaha}
+                value={wirausaha.nama_usaha} // PASS VALUE
                 onChange={(e) => setWirausaha((w) => ({ ...w, nama_usaha: e.target.value }))}
                 className="mt-2 w-full p-3 bg-white border border-fourth rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary"
               />
@@ -215,6 +254,8 @@ export default function Step3Status({ onBack, formData, updateFormData, onSubmit
             <div className="space-y-1">
               <SmoothDropdown
                 label="Bidang Usaha"
+                // Perlu logic untuk menampilkan label berdasarkan ID yang tersimpan jika SmoothDropdown butuh label
+                // value={ ... } 
                 options={bidangUsahaList.length > 0 ? bidangUsahaList : ["Perdagangan", "Kuliner", "Digital/Teknologi", "Produksi/Manufaktur", "Lainnya"]}
                 placeholder="Masukan bidang usaha anda"
                 isRequired={true}
@@ -224,12 +265,22 @@ export default function Step3Status({ onBack, formData, updateFormData, onSubmit
 
             {/* Tahun Mulai*/}
             <div className="space-y-1">
-              <YearsInput label={"Tahun Mulai"} isRequired={ true } onSelect={(val) => setTahunMulai(val)} />
+              <YearsInput 
+                label={"Tahun Mulai"} 
+                isRequired={true} 
+                value={tahunMulai} // PASS VALUE
+                onSelect={(val) => setTahunMulai(val)} 
+              />
             </div>
 
             {/* Tahun Selesai */}
             <div className="space-y-1 ">
-              <YearsInput label={"Tahun Berakhir"} text='(opsional jika sudah berakhir)' onSelect={(val) => setTahunSelesai(val)} />
+              <YearsInput 
+                label={"Tahun Berakhir"} 
+                text='(opsional jika sudah berakhir)' 
+                value={tahunSelesai} // PASS VALUE
+                onSelect={(val) => setTahunSelesai(val)} 
+              />
             </div>
           </div>
         )}
@@ -242,7 +293,7 @@ export default function Step3Status({ onBack, formData, updateFormData, onSubmit
       {/* Action Buttons */}
       <div className="pt-4 flex justify-between">
         <button
-          onClick={onBack}
+          onClick={handleBackCustom} // GANTI KE HANDLE CUSTOM
           className="flex items-center gap-2 px-4 md:px-6 py-2 border border-fourth rounded-xl text-xs md:text-sm font-bold text-secondary hover:bg-fourth transition-all cursor-pointer"
         >
           <ArrowLeft size={16} /> Kembali
